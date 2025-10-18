@@ -10,7 +10,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(
     settings,
     new_settings => {
-      insertOrAssignVariables(toRaw(new_settings), { type: 'script', script_id: getScriptId() });
+      insertOrAssignVariables(klona(new_settings), { type: 'script', script_id: getScriptId() });
     },
     { immediate: true, deep: true },
   );
