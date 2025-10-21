@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__browsermcp__browser_snapshot",
+      "mcp__browsermcp__browser_screenshot",
+      "mcp__browsermcp__browser_click",
+      "mcp__browsermcp__browser_get_console_logs",
+      "Bash(pnpm build:dev:*)",
+      "Bash(Select-String -Pattern \"咩咩手机|error|ERROR|failed|Failed\" -Context 2)",
+      "mcp__browsermcp__browser_wait",
+      "mcp__browsermcp__browser_press_key"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "browsermcp"
+  ]
+}

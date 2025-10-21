@@ -1,5 +1,10 @@
 <template>
-  <div class="phone-wrapper">
+  <div
+    ref="phoneWrapperRef"
+    class="phone-wrapper"
+    @mousedown="startDrag"
+    @touchstart="startDrag"
+  >
     <div class="phone-container">
       <div class="phone-frame">
         <div class="phone-notch">
@@ -10,9 +15,11 @@
         <div
           class="phone-frame__inner"
           @touchstart.passive="handleTouchStart"
-          @touchend="handleTouchEnd"
+          @touchend="handleRouteTouchEnd"
         >
-          <PhoneStatusBar />
+          <div ref="dragHandleRef" class="drag-handle">
+            <PhoneStatusBar />
+          </div>
           <div class="phone-screen">
             <slot />
           </div>
@@ -23,31 +30,153 @@
 </template>
 
 <script setup lang="ts">
+import $ from 'jquery';
 import PhoneStatusBar from './PhoneStatusBar.vue';
 import { useRoute, useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
 
 const router = useRouter();
 const route = useRoute();
 
+// 拖动相关
+const phoneWrapperRef = ref<HTMLElement>();
+const dragHandleRef = ref<HTMLElement>();
+
+let isDragging = false;
 let startX = 0;
 let startY = 0;
+let initialLeft = 0;
+let initialTop = 0;
+let isTouchEvent = false;
+const dragThreshold = 5;
+
+// 开始拖动
+const startDrag = (e: MouseEvent | TouchEvent) => {
+  if (!phoneWrapperRef.value || !dragHandleRef.value) return;
+
+  // 只在拖动手柄区域才能拖动
+  const target = e.target as HTMLElement;
+  if (!dragHandleRef.value.contains(target)) {
+    return;
+  }
+
+  e.preventDefault();
+  isDragging = true;
+  isTouchEvent = e.type === 'touchstart';
+
+  // 获取起始坐标
+  if (isTouchEvent && 'touches' in e && e.touches.length > 0) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  } else if ('clientX' in e) {
+    startX = e.clientX;
+    startY = e.clientY;
+  }
+
+  initialLeft = phoneWrapperRef.value.offsetLeft;
+  initialTop = phoneWrapperRef.value.offsetTop;
+
+  // 绑定全局移动和结束事件
+  if (isTouchEvent) {
+    $('body').on('touchmove', onDrag as any);
+    $('body').on('touchend', stopDrag as any);
+  } else {
+    $('body').on('mousemove', onDrag as any);
+    $('body').on('mouseup', stopDrag as any);
+  }
+};
+
+// 拖动中
+const onDrag = (e: MouseEvent | TouchEvent) => {
+  if (!isDragging || !phoneWrapperRef.value) return;
+
+  let currentX, currentY;
+  if (isTouchEvent && 'touches' in e && e.touches.length > 0) {
+    currentX = e.touches[0].clientX;
+    currentY = e.touches[0].clientY;
+  } else if ('clientX' in e) {
+    currentX = e.clientX;
+    currentY = e.clientY;
+  } else {
+    return;
+  }
+
+  const dx = currentX - startX;
+  const dy = currentY - startY;
+
+  // 超过阈值才移动
+  if (Math.abs(dx) > dragThreshold || Math.abs(dy) > dragThreshold) {
+    phoneWrapperRef.value.style.left = `${initialLeft + dx}px`;
+    phoneWrapperRef.value.style.top = `${initialTop + dy}px`;
+  }
+
+  e.preventDefault();
+};
+
+// 停止拖动
+const stopDrag = () => {
+  isDragging = false;
+  $('body').off('mousemove touchmove', onDrag as any);
+  $('body').off('mouseup touchend', stopDrag as any);
+
+  // 保存位置到 localStorage
+  if (phoneWrapperRef.value) {
+    const position = {
+      left: phoneWrapperRef.value.offsetLeft,
+      top: phoneWrapperRef.value.offsetTop,
+    };
+    localStorage.setItem('phone-position', JSON.stringify(position));
+  }
+};
+
+// 初始化位置
+onMounted(() => {
+  if (phoneWrapperRef.value) {
+    // 尝试从 localStorage 读取保存的位置
+    const savedPosition = localStorage.getItem('phone-position');
+    let left, top;
+
+    if (savedPosition) {
+      try {
+        const position = JSON.parse(savedPosition);
+        left = position.left;
+        top = position.top;
+      } catch {
+        // 解析失败则使用默认位置
+        left = Math.max(20, (window.innerWidth - 390) / 2);
+        top = 20;
+      }
+    } else {
+      // 没有保存的位置，使用默认居中位置
+      left = Math.max(20, (window.innerWidth - 390) / 2);
+      top = 20;
+    }
+
+    phoneWrapperRef.value.style.left = `${left}px`;
+    phoneWrapperRef.value.style.top = `${top}px`;
+  }
+});
+
+// 路由滑动相关（用于返回主页的手势）
+let routeStartX = 0;
+let routeStartY = 0;
 let touchStartTime = 0;
 
 function handleTouchStart(event: TouchEvent) {
   const touch = event.touches[0];
-  startX = touch.clientX;
-  startY = touch.clientY;
+  routeStartX = touch.clientX;
+  routeStartY = touch.clientY;
   touchStartTime = Date.now();
 }
 
-function handleTouchEnd(event: TouchEvent) {
+function handleRouteTouchEnd(event: TouchEvent) {
   if (route.path === '/') {
     return;
   }
 
   const touch = event.changedTouches[0];
-  const deltaX = touch.clientX - startX;
-  const deltaY = touch.clientY - startY;
+  const deltaX = touch.clientX - routeStartX;
+  const deltaY = touch.clientY - routeStartY;
   const duration = Date.now() - touchStartTime;
 
   if (duration > 600) return;
@@ -60,26 +189,24 @@ function handleTouchEnd(event: TouchEvent) {
 
 <style lang="scss" scoped>
 .phone-wrapper {
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: fixed;
   background: transparent;
-  padding: 20px 0;
-  box-sizing: border-box;
+  pointer-events: none; // 允许点击穿透
+  z-index: 1000;
+  width: min(390px, calc(100vw - 32px));
+  max-width: 390px;
 }
 
 .phone-container {
   position: relative;
-  width: min(320px, calc(100vw - 32px));
-  max-width: 320px;
+  width: 100%;
   aspect-ratio: 9 / 19.5;
   display: flex;
   justify-content: center;
   align-items: stretch;
   flex-shrink: 0;
   filter: drop-shadow(0 24px 38px rgba(12, 20, 38, 0.32));
+  pointer-events: auto; // 恢复手机本身的点击交互
 }
 
 .phone-container::before,
@@ -116,6 +243,11 @@ function handleTouchEnd(event: TouchEvent) {
     0 18px 45px rgba(3, 6, 12, 0.4);
   display: flex;
   align-items: stretch;
+}
+
+.drag-handle {
+  cursor: move;
+  user-select: none;
 }
 
 .phone-notch {

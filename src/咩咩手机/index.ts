@@ -64,9 +64,10 @@ function initPhoneUI() {
     position: 'fixed',
     top: '0',
     left: '0',
-    width: '100vw',
-    height: '100vh',
+    width: '0',
+    height: '0',
     zIndex: '9999',
+    pointerEvents: 'none', // 允许点击穿透到下方内容
   });
   $('body').append($app);
 
