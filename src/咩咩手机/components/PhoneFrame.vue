@@ -313,12 +313,8 @@ function handleRouteTouchEnd(event: TouchEvent) {
   flex-direction: column;
   min-height: 0;
   box-sizing: border-box;
-  padding-bottom: 18px;
+  overflow: hidden;
 }
 
-.phone-screen > * {
-  width: 100%;
-  min-height: 0;
-  flex: 1 1 auto;
-}
+
 </style>

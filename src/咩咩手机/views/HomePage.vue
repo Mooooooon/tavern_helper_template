@@ -6,6 +6,14 @@
     </header>
 
     <section class="home-app-grid">
+      <button class="app-card app-card--chat" type="button" @click="goChat">
+        <div class="app-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20,2H4A2,2,0,0,0,2,4V22l4-4H20a2,2,0,0,0,2-2V4A2,2,0,0,0,20,2Z" />
+          </svg>
+        </div>
+        <span class="app-card__label">Chat</span>
+      </button>
       <button class="app-card app-card--settings" type="button" @click="goSettings">
         <div class="app-card__icon">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -79,6 +87,10 @@ onBeforeUnmount(() => {
 
 function goSettings() {
   router.push('/settings');
+}
+
+function goChat() {
+  router.push('/chat');
 }
 
 function updateDate() {
@@ -162,6 +174,10 @@ function updateDate() {
   width: 34px;
   height: 34px;
   fill: #ffffff;
+}
+
+.app-card--chat .app-card__icon {
+  background: linear-gradient(140deg, #5b86e5 0%, #36d1dc 100%);
 }
 
 .app-card--settings .app-card__icon {

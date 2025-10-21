@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-status-bar">
+  <div class="phone-status-bar" :style="{ backgroundColor: statusBarColor }">
     <div class="status-left">
       <span class="time">{{ currentTime }}</span>
     </div>
@@ -29,11 +29,18 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watchEffect } from 'vue';
+import { useRoute } from 'vue-router';
 
 const currentTime = ref('');
+const route = useRoute();
+const statusBarColor = ref('transparent');
 
 let timeInterval: number | null = null;
+
+watchEffect(() => {
+  statusBarColor.value = (route.meta.statusBarColor as string) || 'transparent';
+});
 
 function updateTime() {
   const now = new Date();
