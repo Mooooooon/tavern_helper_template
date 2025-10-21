@@ -10,5 +10,4 @@ yarn-error.log*
 pnpm-debug.log*
 
 dist
-src
 auto-imports.d.ts
