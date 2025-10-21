@@ -248,6 +248,15 @@ function handleRouteTouchEnd(event: TouchEvent) {
 .drag-handle {
   cursor: move;
   user-select: none;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.drag-handle,
+.drag-handle * {
+  transition: none !important;
+  opacity: 1 !important;
+  filter: none !important;
 }
 
 .phone-notch {

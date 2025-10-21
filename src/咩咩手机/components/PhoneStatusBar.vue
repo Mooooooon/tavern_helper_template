@@ -5,8 +5,22 @@
     </div>
 
     <div class="status-right" aria-hidden="true">
-      <span class="status-icon status-icon--signal"></span>
-      <span class="status-icon status-icon--wifi"></span>
+      <svg class="status-icon status-icon--signal" viewBox="0 0 18 12" fill="none">
+        <rect x="0" y="8" width="3" height="4" rx="1" fill="#1f2330"/>
+        <rect x="5" y="5" width="3" height="7" rx="1" fill="#1f2330"/>
+        <rect x="10" y="2" width="3" height="10" rx="1" fill="#1f2330"/>
+        <rect x="15" y="0" width="3" height="12" rx="1" fill="#1f2330"/>
+      </svg>
+      <svg class="status-icon status-icon--wifi" viewBox="0 0 18 14" fill="none">
+        <!-- 底部圆点 -->
+        <circle cx="9" cy="13" r="1.2" fill="#1f2330"/>
+        <!-- 最小弧线 (内层) -->
+        <path d="M6.5 10.5C7 10 8 9.5 9 9.5C10 9.5 11 10 11.5 10.5" stroke="#1f2330" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- 中等弧线 (中层) -->
+        <path d="M4.5 8C5.8 6.8 7.3 6 9 6C10.7 6 12.2 6.8 13.5 8" stroke="#1f2330" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- 最大弧线 (外层) -->
+        <path d="M2 5C4 3.2 6.3 2 9 2C11.7 2 14 3.2 16 5" stroke="#1f2330" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      </svg>
       <span class="status-icon status-icon--battery">
         <span class="battery-level"></span>
       </span>
@@ -78,36 +92,12 @@ onUnmounted(() => {
 .status-icon--signal {
   width: 18px;
   height: 12px;
-  position: relative;
-}
-
-.status-icon--signal::before,
-.status-icon--signal::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  border-radius: 1px;
-  background: linear-gradient(180deg, #546073 0%, #303748 100%);
-}
-
-.status-icon--signal::before {
-  left: 0;
-  width: 12px;
-  height: 10px;
-  clip-path: polygon(0 100%, 0 20%, 25% 35%, 50% 55%, 75% 70%, 100% 20%, 100% 100%);
-}
-
-.status-icon--signal::after {
-  right: 0;
-  width: 3px;
-  height: 12px;
 }
 
 .status-icon--wifi {
   width: 18px;
-  height: 12px;
-  background: conic-gradient(from 210deg, rgba(84, 96, 115, 0) 0deg, rgba(84, 96, 115, 0) 110deg, #546073 120deg, #546073 240deg, rgba(84, 96, 115, 0) 250deg);
-  mask: radial-gradient(circle at 50% 150%, black 0%, black 55%, transparent 56%);
+  height: 14px;
+  transform: translateY(-1px);
 }
 
 .status-icon--battery {
