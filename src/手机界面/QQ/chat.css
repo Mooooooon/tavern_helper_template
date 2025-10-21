@@ -1,0 +1,246 @@
+.QQ_chat_page {
+  padding-top: 10px;
+  background-color: rgb(244, 245, 246);
+  width: 100%;
+  height: 100%;
+  /* 填满视口高度 */
+  /* background-image: url("http://sharkpan.xyz/f/eWhZ/00017-2763077315.png"); */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: top center;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  /* 允许内容区域垂直滚动 */
+  box-sizing: border-box;
+  /* 防止内边距溢出 */
+  border-radius: var(--yj);
+  /* padding-bottom: 60px; */
+
+  position: relative;
+  overflow-x: hidden;
+
+  /* z-index: 9999; */
+  /* font-family: "字魂萌宠天地体"; */
+}
+
+.input-container {
+  max-width: 100%;
+  /* position: absolute; */
+  /* bottom: 20px; */
+  bottom: 0px;
+  left: 0;
+  width: 100%;
+  /* background-color: rgb(255, 255, 255, 0.2); */
+  /* background-color: white; */
+  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  box-sizing: border-box;
+  padding: 10px 0 5px 0;
+  border-top: 1px solid black;
+}
+
+.msgcontent {
+  flex: 1;
+  overflow-y: auto;
+  box-sizing: border-box;
+  /* margin-bottom: 85px; */
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.msgcontent::-webkit-scrollbar {
+  display: none !important;
+}
+
+.userInput {
+  font: inherit;
+  height: 30px;
+  border-radius: 8px;
+  letter-spacing: 0.7px;
+  width: 100%;
+  padding-left: 10px;
+  padding-right: 10px;
+  border: 1px solid rgb(0, 0, 0, 0.5);
+}
+
+/* 聊天设置弹窗样式 */
+.chat-setting-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 350px;
+  max-height: 80%;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-setting-header {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-setting-header span {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.close-setting-btn {
+  cursor: pointer;
+}
+
+.chat-setting-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+}
+
+.setting-item {
+  /* margin-bottom: 15px; */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-item span {
+  font-size: 14px;
+}
+
+.setting-item input[type='text'] {
+  flex: 1;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.setting-item input[type='number'] {
+  flex: 1;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.color-picker {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.chat-setting-footer {
+  padding: 10px 15px;
+  text-align: right;
+  border-top: 1px solid #eee;
+}
+
+.chat-setting-footer button {
+  padding: 6px 15px;
+  margin-left: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#save-setting-btn {
+  background-color: #019aff;
+  color: white;
+}
+
+.pickfile-setting-btn {
+  background-color: #68baf0;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 7px;
+}
+
+#cancel-setting-btn {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+/* 弹窗遮罩层 */
+.popup-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.QQ_chat_fakeimg {
+  width: 100%;
+  background-color: white;
+  aspect-ratio: 1 / 1;
+  padding: 5px 18px 0 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.3em;
+  /* overflow-y: auto; */
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  text-align: center;
+}
+
+.QQ_chat_fakeimg::-webkit-scrollbar {
+  display: none !important;
+}
+
+.QQ_chat_fakeimg div {
+  max-height: 100%;
+  display: flex;
+  align-items: flex-start;
+  overflow-y: auto;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.QQ_chat_fakeimg div::-webkit-scrollbar {
+  display: none !important;
+}
+
+.QQ_chatpage_function {
+  margin-top: 7px;
+  width: 100%;
+  height: 30px;
+  display: flex;
+  background-color: transparent;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.QQ_chatpage_function svg {
+  fill: #2c2c2c;
+}
+
+.QQ_chatpage_function svg.svg_selected {
+  fill: #2396e9;
+}
+
+.QQ_chat_username {
+  margin-left: 8px;
+  color: #000;
+  font-size: 16px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

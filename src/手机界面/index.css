@@ -1,0 +1,800 @@
+@import url('https://static.zeoseven.com/zsft/59/main/result.css');
+/* @import url('chat/chat.css');
+@import url('discord/discord.css'); */
+
+/* body {
+  --yj: 22px;
+  overflow: auto !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  letter-spacing: 0.7px;
+
+  font-family: 'JiangChengYuanTi';
+  font-weight: normal;
+} */
+
+.head {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  min-width: 40px;
+}
+
+.card::-webkit-scrollbar {
+  display: none !important;
+  /* 适用于 Webkit 浏览器 */
+}
+
+.card {
+  --yj: 22px;
+  /* overflow: auto !important; */
+  /* overflow-x: hidden; */
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  letter-spacing: 0.7px;
+
+  font-family: 'JiangChengYuanTi';
+  font-weight: normal;
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 35px;
+  padding: 7px;
+  box-shadow: 2px 3px 3px rgba(0, 0, 0, 0.25);
+  margin-left: 5px;
+  box-sizing: border-box;
+  z-index: 99;
+}
+
+.card-int {
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+  height: 100%;
+  border-radius: 25px;
+  transition: all 0.6s ease-out;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.card:hover .card-int {
+  background-position: 100% 100%;
+}
+
+#App_Page {
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+  height: 100%;
+  border-radius: 25px;
+  transition: all 0.6s ease-out;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.top {
+  position: absolute;
+  top: 0px;
+  right: 50%;
+  transform: translate(50%, 0%);
+  width: 35%;
+  height: 22px;
+  border-bottom-left-radius: 13px;
+  border-bottom-right-radius: 13px;
+  z-index: 9999999;
+}
+
+.speaker {
+  position: absolute;
+  top: 2px;
+  right: 50%;
+  transform: translate(50%, 0%);
+  width: 40%;
+  height: 2px;
+  border-radius: 2px;
+  background-color: rgb(20, 20, 20);
+}
+
+.camera {
+  position: absolute;
+  top: 6px;
+  right: 84%;
+  transform: translate(50%, 0%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.048);
+}
+
+.int {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  background-color: rgba(0, 0, 255, 0.212);
+}
+
+.btn1,
+.btn2,
+.btn3,
+.btn4 {
+  position: absolute;
+  width: 2px;
+}
+
+.btn1,
+.btn2,
+.btn3 {
+  height: 45px;
+  top: 30%;
+  right: -4px;
+}
+
+.btn2,
+.btn3 {
+  transform: scale(-1);
+  left: -4px;
+}
+
+.btn2,
+.btn3 {
+  transform: scale(-1);
+  height: 30px;
+}
+
+.btn2 {
+  top: 26%;
+}
+
+.btn3 {
+  top: 36%;
+}
+
+.hidden {
+  display: block;
+  opacity: 0;
+  transition: all 0.3s ease-in;
+}
+
+.card:hover .hidden {
+  opacity: 1;
+}
+
+.card:hover .hello {
+  transform: translateY(-20px);
+}
+
+.btn {
+  position: absolute;
+  width: 2px;
+}
+
+.backdiv {
+  background-color: white;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  /* aspect-ratio: 1 / 1.328; */
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-image: url('http://sharkpan.xyz/f/6osR/00005-660646865.png');
+  box-sizing: border-box;
+}
+
+.dibu {
+  position: absolute;
+  /* bottom: 3%; */
+  bottom: 40px;
+  left: 3%;
+  right: 3%;
+  background-color: black;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  padding: 0 5px 0 5px;
+  border-radius: 30px;
+  --a: 10px;
+  background-color: rgba(255, 255, 255, 0.2);
+  /* 半透明背景 */
+  backdrop-filter: blur(var(--a));
+  /* 背景模糊 */
+  -webkit-backdrop-filter: blur(var(--a));
+  /* 兼容老版本 Safari */
+
+  /* gap: 1%; */
+}
+
+.dibu svg {
+  transform: scale(0.85);
+  /* 缩小到原来的 50% */
+  transform-origin: center;
+}
+
+.dinbu {
+  position: absolute;
+  top: 13px;
+  /* left: 7%; */
+  left: 20px;
+  right: 2%;
+  color: #626367;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 9999999;
+}
+
+.zhong {
+  position: absolute;
+  border-radius: 20px;
+  --a: 3px;
+  background-color: rgba(255, 255, 255, 0.2);
+  /* 半透明背景 */
+  backdrop-filter: blur(var(--a));
+  /* 背景模糊 */
+  -webkit-backdrop-filter: blur(var(--a));
+  /* 兼容老版本 Safari */
+
+  top: 30%;
+  left: 4%;
+  right: 4%;
+  color: black;
+  padding: 10px 15px 10px 10px;
+  font-size: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* gap: 10px; */
+  letter-spacing: 2px;
+}
+
+.app {
+  position: absolute;
+  bottom: 120px;
+  left: 4%;
+  right: 4%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  color: black;
+  box-sizing: border-box;
+  max-width: 92%;
+  /* 确保宽度不会超出 4% + 4% 的限制 */
+  flex-wrap: wrap;
+}
+
+.app-svg-div {
+  max-width: 20%;
+  transform: scale(0.8);
+  /* 缩小到原来的 50% */
+  transform-origin: center;
+  /* 设置缩放中心为中心点 */
+}
+
+.QQ_home_head {
+  border-radius: 50%;
+  margin-right: 10px;
+  width: 40px;
+  height: 40px;
+  /* display: block; */
+  font-size: 0;
+  min-width: 40px;
+  background-size: cover;
+}
+
+.QQ_home_usermsg {
+  --head_size: 40px;
+  width: 100%;
+  display: flex;
+  font-size: 14px;
+  align-items: center;
+  height: 60px;
+  align-items: center;
+  position: relative;
+}
+
+.QQ_home_usermsg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.QQ_home_usermsg:active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -10px;
+  right: -10px;
+  height: 100%;
+  background-color: #d5d5d5;
+}
+
+.QQ_home_usermsg_new {
+  background-color: red;
+  border-radius: 50%;
+  width: 17px;
+  height: 17px;
+  /* color: #eff3ff; */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  justify-self: end;
+  padding: 2px;
+}
+
+.QQ_home_usermsg_new_hidden {
+  background-color: #dbdbdb;
+  border-radius: 10px;
+  width: 2rem;
+  height: 17px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  justify-self: end;
+  padding: 2px;
+}
+
+.QQ_bottom_nav {
+  position: absolute;
+  /* bottom: 22px; */
+  bottom: 0px;
+  width: 100%;
+  /* background-color: #f2f1f6; */
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  font-size: 10px;
+  background-color: white;
+
+  /* display: none; */
+}
+
+body div {
+  box-sizing: border-box !important;
+}
+
+.page_button {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  width: 100%;
+  z-index: 99;
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  height: 22px;
+  box-sizing: border-box;
+  /* gap: 37px; */
+  /* background-color: aqua; */
+  padding-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+  body {
+    /* font-size: 12px; */
+    /* 小屏幕字体更小 */
+  }
+
+  .zhong {
+    font-size: 20px;
+  }
+
+  .card {
+    aspect-ratio: 1 / 1.5;
+  }
+}
+
+#space_page {
+  width: 100%;
+  /* height: 100%; */
+  height: 820px;
+  background-color: #ffffff;
+  /* padding-left: 7px; */
+  /* padding-right: 7px; */
+  display: none;
+}
+
+.user_moment_title {
+  --head_size: 40px;
+  width: 100%;
+  display: flex;
+  font-size: 14px;
+  align-items: start;
+  margin-bottom: 5px;
+}
+
+.user_moment {
+  padding-left: 7px;
+  padding-right: 7px;
+  position: relative;
+}
+
+.moment_button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  /* position: absolute; */
+  /* right: 10px; */
+  margin-left: auto;
+
+  transform: scale(0.9);
+  /* 缩小到原来的 50% */
+  transform-origin: center;
+}
+
+.moment_msg {
+  background-color: #ffffff;
+  margin-top: 5px;
+  max-width: 60%;
+  border-radius: 7px;
+  font-size: 15px;
+  padding: 6px;
+  width: fit-content;
+  white-space: normal;
+  /* 允许换行 */
+  letter-spacing: 1px;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  box-shadow: 1px 1px 2px rgba(32, 32, 32, 0.2);
+}
+
+#Home_page {
+  width: 100%;
+  height: 100%;
+  background-image: url('http://sharkpan.xyz/f/nBUl/%E6%89%8B%E6%9C%BA%E5%A3%81%E7%BA%B82.jpg');
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+
+.QQ_chat_head {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+  min-width: 40px;
+}
+
+.user_avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+}
+
+.QQ_chat_msg {
+  font-size: 14px;
+  margin-right: 5px;
+  margin-left: 5px;
+}
+
+.QQ_chat_mymsg {
+  max-width: 80%;
+  margin-left: auto;
+  display: grid;
+  grid-template-columns: 1fr 50px;
+  grid-template-rows: auto auto;
+  justify-items: end;
+  text-align: right;
+  align-items: start;
+  margin-bottom: 20px;
+  margin-right: 11px;
+}
+
+.QQ_chat_charmsg {
+  max-width: 80%;
+  display: grid;
+  grid-template-columns: 47px 1fr;
+  grid-template-rows: auto auto;
+  align-items: start;
+  margin-bottom: 20px;
+  margin-left: 10px;
+}
+
+.QQ_chat_msgdiv {
+  box-shadow: 2px 2px 2px rgba(15, 15, 15, 0.3);
+  letter-spacing: 1px;
+  line-height: 1.4;
+  font-size: 15px;
+  width: fit-content;
+  color: black;
+  border-radius: 7px;
+  padding: 7px;
+  text-align: left;
+  box-sizing: border-box;
+  margin-left: -2px;
+}
+
+.QQ_chat_name {
+  font-size: 13px;
+  color: black;
+}
+
+.QQ_chat_msgimg {
+  width: 100%;
+  background-color: white;
+}
+
+.msgimg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  width: 100%;
+  /* 消除图片底部可能的空隙 */
+}
+
+.QQ_chat_time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 10px;
+  margin-bottom: 10px;
+  color: #a1a1a1;
+}
+
+.mimictwitter hr {
+  background-color: rgb(240, 244, 245);
+  border: none;
+  height: 1px;
+}
+
+.twitterhead {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  margin-left: 4px;
+  min-width: 45px;
+}
+
+.interactsvg {
+  width: 15.5px;
+  height: 15.5px;
+}
+
+.twitter-content {
+  flex: 1;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding-top: 10px;
+  padding-right: 3px;
+}
+
+.mimictwitter {
+  background-color: white;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 10px;
+  height: 100%;
+  box-sizing: border-box;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.twitter {
+  overflow-x: hidden;
+  font-size: 16px;
+  height: 100%;
+}
+
+.twitter_moment {
+  display: grid;
+  grid-template-columns: 50px 1fr 0px;
+  grid-template-rows: auto auto;
+}
+
+img {
+  box-sizing: border-box !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.user_leave_message {
+  font-size: 13px;
+  margin-top: 7px;
+  display: flex;
+  flex-direction: column;
+
+  span {
+    line-height: 1.5;
+  }
+}
+
+.space_contents {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+}
+
+.give_money {
+  /* margin-top: 10px; */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#QQ_home_chars {
+  background-color: #fefefe;
+  width: 100%;
+  flex: 1;
+  border-radius: 20px 20px 0 0;
+  padding: 5px 10px 20px 10px;
+  box-sizing: border-box;
+  overflow: auto !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  margin-bottom: 40px;
+}
+
+#QQ_home_chars::-webkit-scrollbar {
+  display: none !important;
+  /* 适用于 Webkit 浏览器 */
+}
+
+#QQ_home_page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+span {
+  word-break: break-word;
+}
+
+.QQ_chat_music {
+  background-color: #fefefe;
+  border-radius: 10px;
+  padding-top: 10px;
+  padding-right: 10px;
+  padding-left: 10px;
+  padding-bottom: 5px;
+  width: 100%;
+}
+
+.hide-title {
+  white-space: nowrap;
+  /* 禁止换行 */
+  overflow: hidden;
+  /* 隐藏溢出内容 */
+  text-overflow: ellipsis;
+  /* 显示省略号 */
+}
+
+.music-play-button {
+  position: absolute;
+  border-radius: 50%;
+  background-color: #ffffff49;
+  height: 32px;
+  width: 32px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* backdrop-filter: blur(1px); */
+  z-index: 2;
+  border: 2px solid white;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.space_fakeimg {
+  text-align: center;
+  margin-top: 5px;
+  font-size: 1.2rem;
+  background-color: rgb(239 237 238);
+  padding: 30px 10px;
+  width: 100%;
+  border: 1px solid black;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.QQ_home_lasttime {
+  overflow: hidden;
+  /* 隐藏溢出内容 */
+  white-space: nowrap;
+  /* 禁止换行 */
+  text-overflow: ellipsis;
+  /* 显示省略号 */
+  max-width: 4rem;
+}
+
+.emoji_container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 10px 10px;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.emoji_container::-webkit-scrollbar {
+  display: none !important;
+}
+
+.emoji_container_img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 1px dashed rgb(215, 213, 213);
+}
+
+.input_container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  background-color: #f9f9f9;
+  justify-content: center;
+}
+
+.input_container span {
+  color: #333;
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+.input_container input[type='text'] {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #333;
+  outline: none;
+  font-size: 1em;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.input_container input[type='text']:focus {
+  border-color: #8cb4ff;
+  box-shadow: 0 0 8px rgba(140, 180, 255, 0.4);
+}
+
+.input_container button {
+  width: 100%;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(135deg, #89f7fe, #66a6ff);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  font-size: 1em;
+}
+
+.input_container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 166, 255, 0.5);
+}
+
+.input_container button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
