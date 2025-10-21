@@ -2,7 +2,7 @@
   <div class="rednote-homepage" v-show="!sharedState.RedNote.activePost || sharedState.RedNote.post.length == 0">
     <div class="rednote-homepage-top">
       <div
-        @click="sharedState.phone.activeApp = 'QQ'"
+        @click="sharedState.phone.activeApp = 'Home'"
         class="user_avatar"
         style="
           width: 35px;

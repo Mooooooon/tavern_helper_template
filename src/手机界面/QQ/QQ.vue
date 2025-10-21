@@ -14,7 +14,7 @@
         <!-- <img src="http://sharkpan.xyz/f/Z7Hr/%E8%82%A5%E8%82%A5%E9%B2%A8%E5%90%83%E8%9B%8B%E7%B3%95.jpg" alt="加载失败"
               style="width: 35px;height: 35px;border-radius: 50%;margin-left: 10px;"> -->
         <div
-          @click="sharedState.phone.panel = true"
+          @click="goHome"
           class="user_avatar"
           style="width: 35px; height: 35px; border-radius: 50%; margin-left: 10px"
         ></div>
@@ -595,6 +595,12 @@ const phone_settings = ref({
   userText: sharedState.QQ.default.text,
   sendModel: sharedState.phone.sendModel,
 });
+
+const goHome = () => {
+  sharedState.QQ.panel = false;
+  sharedState.phone.panel = false;
+  sharedState.phone.activeApp = 'Home';
+};
 
 function removeChar(char) {
   const result = confirm(`确定要删除角色：${char.name}吗`);

@@ -489,7 +489,7 @@ export const sharedState = reactive({
     post: [] as { [key: string]: any }[],
   },
   phone: {
-    activeApp: 'QQ', // 默认启动QQ
+    activeApp: 'Home', // 默认启动桌面
     show: true,
     colorSettings: {
       border: '',
