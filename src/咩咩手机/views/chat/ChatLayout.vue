@@ -1,9 +1,27 @@
 <template>
   <div class="chat-layout">
     <header class="chat-header">
-      <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
+      <div class="profile">
+        <img :src="ownerAvatar" alt="Avatar" class="avatar">
+        <div class="profile-info">
+          <span class="profile-name">{{ ownerName }}</span>
+          <span class="profile-status">
+            <span class="status-dot" aria-hidden="true"></span>
+            {{ ownerStatus }}
+          </span>
+        </div>
+      </div>
       <div class="actions">
-        <button class="add-contact">+</button>
+        <button class="icon-button" type="button" aria-label="添加联系人">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
       </div>
     </header>
     <main class="chat-content">
@@ -25,7 +43,10 @@
         </router-link>
         <router-link to="/chat/moments" class="nav-item">
           <svg viewBox="0 0 24 24" class="nav-icon">
-            <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+            <path
+              fill="currentColor"
+              d="M12 2.5l2.47 5.01 5.53.8-4 3.89.94 5.5L12 15.77 7.06 17.7l.94-5.5-4-3.89 5.53-.8L12 2.5z"
+            />
           </svg>
           <span>动态</span>
         </router-link>
@@ -35,6 +56,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+
+const ownerName = '咩咩助手';
+const ownerStatus = '在线';
+const ownerAvatar = computed(() => getAvatarSrc(undefined, 'owner', 40));
 </script>
 
 <style scoped>
@@ -42,56 +69,114 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #f0f2f5;
+  background-color: #f6f6f7;
 }
 
 .chat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  background-color: #fff;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 0 16px 12px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e8e8ea;
+  color: #222;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  border: 1px solid #ededed;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.add-contact {
-  background: none;
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.profile-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.profile-status {
+  font-size: 12px;
+  color: #6f6f73;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #3cc77a;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-button {
   border: none;
-  font-size: 24px;
+  background: none;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   cursor: pointer;
+}
+
+.icon-button svg {
+  width: 32px;
+  height: 32px;
 }
 
 .chat-content {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  background-color: #ffffff;
 }
 
 .chat-footer {
-  border-top: 1px solid #e0e0e0;
-  background-color: #fff;
-  padding: 4px 0;
+  border-top: 1px solid #e8e8ea;
+  background-color: #ffffff;
+  padding: 6px 12px;
 }
 
 nav {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 0;
+  align-items: center;
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  flex: 1;
   text-decoration: none;
-  color: #888;
+  color: #909097;
   font-size: 12px;
   gap: 2px;
+  position: relative;
+  transition: color 0.2s ease;
 }
 
 .nav-icon {
@@ -99,7 +184,20 @@ nav {
   height: 24px;
 }
 
+.nav-item.router-link-active,
 .nav-item.router-link-exact-active {
-  color: #1d93ff;
+  color: #1f1f1f;
+  font-weight: 600;
+}
+
+.nav-item.router-link-active::after,
+.nav-item.router-link-exact-active::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #1f1f1f;
 }
 </style>
