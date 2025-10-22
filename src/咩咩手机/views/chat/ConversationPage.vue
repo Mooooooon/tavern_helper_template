@@ -15,8 +15,11 @@
               alt="联系人头像"
               class="avatar"
             >
-            <div class="friend-content">
-              <span class="friend-author">{{ item.author }}</span>
+            <div
+              class="friend-content"
+              :class="{ 'friend-content--single': !isGroupConversation }"
+            >
+              <span v-if="isGroupConversation" class="friend-author">{{ item.author }}</span>
               <div class="friend-bubble">
                 <p class="text">{{ item.text }}</p>
               </div>
@@ -82,6 +85,8 @@ const currentConversation = computed(() => {
   return getConversationById(id);
 });
 
+const isGroupConversation = computed(() => currentConversation.value?.isGroup ?? false);
+
 function goBack() {
   router.push({ name: 'chat-messages' });
 }
@@ -113,23 +118,6 @@ function goBack() {
 .message-row {
   display: flex;
   width: 100%;
-}
-
-.message-row.system {
-  justify-content: center;
-  color: #8c9099;
-  font-size: 12px;
-}
-
-.system-tag {
-  background: rgba(140, 144, 153, 0.18);
-  padding: 6px 12px;
-  border-radius: 999px;
-}
-
-.message-row {
-  display: flex;
-  width: 100%;
   gap: 10px;
 }
 
@@ -155,6 +143,14 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.friend-content--single {
+  gap: 2px;
+}
+
+.friend-content--single .friend-bubble {
+  border-radius: 16px;
 }
 
 .friend-author {

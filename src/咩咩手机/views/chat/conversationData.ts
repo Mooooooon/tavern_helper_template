@@ -20,6 +20,7 @@ export interface ConversationDetail {
   name: string;
   avatar?: string;
   meta: string;
+  isGroup: boolean;
   messages: ConversationMessage[];
 }
 
@@ -28,6 +29,7 @@ const conversations: ConversationDetail[] = [
     id: 1,
     name: '咩咩战队',
     meta: '小队群 · 在线 6 人',
+    isGroup: true,
     messages: [
       { id: 1, type: 'system', text: '下午 6:05' },
       {
@@ -60,6 +62,7 @@ const conversations: ConversationDetail[] = [
     id: 2,
     name: '喵喵',
     meta: '移动在线 · 正在输入...',
+    isGroup: false,
     messages: [
       { id: 1, type: 'system', text: '下午 3:20' },
       {
@@ -106,6 +109,55 @@ const conversations: ConversationDetail[] = [
         id: 7,
         type: 'system',
         text: '咩咩助手已将“夜间模式”加入提醒事项',
+      },
+    ],
+  },
+  {
+    id: 5,
+    name: '星见旅人',
+    meta: '最近在线 · 5 分钟前',
+    isGroup: false,
+    messages: [
+      { id: 1, type: 'system', text: '昨天 下午 9:12' },
+      {
+        id: 2,
+        type: 'message',
+        sender: 'friend',
+        author: '星见旅人',
+        text: '今晚的星轨拍到了，发你几张看看？',
+        time: '晚上 9:12',
+      },
+      {
+        id: 3,
+        type: 'message',
+        sender: 'me',
+        author: '我',
+        text: '想看！你镜头拉到银河中心了吗？',
+        time: '晚上 9:13',
+      },
+      {
+        id: 4,
+        type: 'message',
+        sender: 'friend',
+        author: '星见旅人',
+        text: '有的，顺便抓到一颗小流星，等下打包发你。',
+        time: '晚上 9:14',
+      },
+      {
+        id: 5,
+        type: 'message',
+        sender: 'me',
+        author: '我',
+        text: '太棒了！周末要不要一起去郊外再拍一组？',
+        time: '晚上 9:14',
+      },
+      {
+        id: 6,
+        type: 'message',
+        sender: 'friend',
+        author: '星见旅人',
+        text: '好呀，我找个流光比较干净的山谷，到时候通知你～',
+        time: '晚上 9:15',
       },
     ],
   },
