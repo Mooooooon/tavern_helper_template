@@ -21,7 +21,6 @@
             <img :src="getAvatarSrc(moment.avatar, moment.id, 42)" alt="" class="moment-avatar">
             <div class="moment-user-info">
               <span class="moment-name">{{ moment.name }}</span>
-              <span class="moment-timestamp">{{ moment.timestamp }}</span>
             </div>
           </div>
           <button class="moment-more" type="button" aria-label="更多">
@@ -30,11 +29,15 @@
             </svg>
           </button>
         </header>
-        <p class="moment-content">{{ moment.content }}</p>
-        <footer class="moment-footer">
-          <span class="moment-meta">👍 {{ moment.likes }}</span>
-          <span class="moment-meta">💬 {{ moment.comments }}</span>
-        </footer>
+        <div class="moment-body">
+          <p class="moment-content">{{ moment.content }}</p>
+          <span class="moment-timestamp">{{ moment.timestamp }}</span>
+        </div>
+        <ul v-if="moment.comments.length" class="moment-comments">
+          <li v-for="comment in moment.comments" :key="comment.id" class="moment-comment">
+            <span class="moment-comment-author">{{ comment.author }}</span>：{{ comment.content }}
+          </li>
+        </ul>
         <div class="moment-reply">
           <input class="moment-reply-input" type="text" placeholder="说点什么吧">
         </div>
@@ -47,13 +50,19 @@
 import { ref } from 'vue';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 
+interface MomentComment {
+  id: number;
+  author: string;
+  content: string;
+}
+
 interface MomentItem {
   id: number;
   name: string;
   content: string;
   timestamp: string;
   likes: number;
-  comments: number;
+  comments: MomentComment[];
   avatar?: string;
 }
 
@@ -64,7 +73,10 @@ const moments = ref<MomentItem[]>([
     content: '今天的云彩像棉花糖一样软软的，想分给你一朵～',
     timestamp: '5分钟前',
     likes: 36,
-    comments: 4,
+    comments: [
+      { id: 1, author: '小狐狸', content: '分我一朵！' },
+      { id: 2, author: '月影', content: '看完心情都变甜了。' },
+    ],
   },
   {
     id: 2,
@@ -72,7 +84,10 @@ const moments = ref<MomentItem[]>([
     content: '新上线的副本太刺激啦！集合开荒队伍，今晚继续冲💪',
     timestamp: '1小时前',
     likes: 58,
-    comments: 12,
+    comments: [
+      { id: 1, author: '骑士团长', content: '随时待命！' },
+      { id: 2, author: '纸风车', content: '昨晚差一点点就过了。' },
+    ],
   },
   {
     id: 3,
@@ -80,7 +95,10 @@ const moments = ref<MomentItem[]>([
     content: '我们发布了全新的视觉指南，欢迎来围观并留下你的灵感。',
     timestamp: '昨天',
     likes: 102,
-    comments: 23,
+    comments: [
+      { id: 1, author: '色块', content: '太酷了，已经收藏！' },
+      { id: 2, author: '点点', content: '期待更多配色案例~' },
+    ],
   },
 ]);
 </script>
@@ -148,7 +166,7 @@ const moments = ref<MomentItem[]>([
 .moments-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -217,23 +235,39 @@ const moments = ref<MomentItem[]>([
   height: 16px;
 }
 
+.moment-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
 .moment-content {
   color: #2c2c2e;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
+  margin: 0;
 }
 
-.moment-footer {
+.moment-comments {
+  margin: 0;
+  padding: 8px 0;
+  border-radius: 12px;
+  list-style: none;
   display: flex;
-  gap: 16px;
-  color: #5a5a5f;
-  font-size: 13px;
+  flex-direction: column;
+  gap: 6px;
+  color: #4c4c52;
+  font-size: 15px;
 }
 
-.moment-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.moment-comment {
+  line-height: 1.4;
+}
+
+.moment-comment-author {
+  color: #3271ff;
+  font-weight: 500;
 }
 
 .moment-reply {

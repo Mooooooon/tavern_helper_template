@@ -80,14 +80,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { getConversationById } from './conversationData';
 
 const ownerName = '咩咩助手';
 const ownerStatus = '在线';
-const ownerAvatar = computed(() => getAvatarSrc(undefined, 'owner', 40));
+const defaultOwnerAvatar = getAvatarSrc(undefined, 'owner', 40);
+const ownerAvatar = ref(defaultOwnerAvatar);
 
 const route = useRoute();
 const router = useRouter();
@@ -113,6 +114,33 @@ const activeConversation = computed(() => {
 function goBack() {
   router.push({ name: 'chat-messages' });
 }
+
+async function loadOwnerAvatar() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (typeof triggerSlash === 'function') {
+      const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
+      if (avatarPath && avatarPath !== 'undefined') {
+        ownerAvatar.value = avatarPath;
+        return;
+      }
+    }
+
+    const helperAvatar = window.TavernHelper?.getCharAvatarPath?.('current', true);
+    if (helperAvatar) {
+      ownerAvatar.value = helperAvatar;
+    }
+  } catch (error) {
+    console.warn('[ChatLayout] 获取用户头像失败', error);
+  }
+}
+
+onMounted(() => {
+  void loadOwnerAvatar();
+});
 </script>
 
 <style scoped>
@@ -144,6 +172,8 @@ function goBack() {
   border-radius: 50%;
   border: 1px solid #ededed;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  object-fit: cover;
+  object-position: center;
 }
 
 .profile-info {
