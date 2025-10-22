@@ -1,35 +1,44 @@
 <template>
   <div class="conversation-page" v-if="currentConversation">
     <div class="conversation-thread">
-      <div
-        v-for="item in currentConversation.messages"
-        :key="item.id"
-        class="message-row"
-        :class="item.type === 'message' ? `from-${item.sender}` : 'system'"
-      >
-        <div v-if="item.type === 'system'" class="system-tag">{{ item.text }}</div>
-        <template v-else>
-          <div v-if="item.sender === 'friend'" class="friend-message">
-            <img
-              :src="getAvatarSrc(currentConversation.avatar, currentConversation.id, 36)"
-              alt="联系人头像"
-              class="avatar"
-            >
-            <div
-              class="friend-content"
-              :class="{ 'friend-content--single': !isGroupConversation }"
-            >
-              <span v-if="isGroupConversation" class="friend-author">{{ item.author }}</span>
-              <div class="friend-bubble">
-                <p class="text">{{ item.text }}</p>
+      <template v-for="(item, index) in currentConversation.messages" :key="item.id">
+        <!-- 显示时间分隔符 -->
+        <div
+          v-if="shouldShowTimestamp(item, index)"
+          class="message-row system"
+        >
+          <div class="system-tag">{{ item.time }}</div>
+        </div>
+
+        <!-- 显示消息 -->
+        <div
+          class="message-row"
+          :class="item.type === 'message' ? `from-${item.sender}` : 'system'"
+        >
+          <div v-if="item.type === 'system'" class="system-tag">{{ item.text }}</div>
+          <template v-else>
+            <div v-if="item.sender === 'friend'" class="friend-message">
+              <img
+                :src="getAvatarSrc(currentConversation.avatar, currentConversation.id, 36)"
+                alt="联系人头像"
+                class="avatar"
+              >
+              <div
+                class="friend-content"
+                :class="{ 'friend-content--single': !isGroupConversation }"
+              >
+                <span v-if="isGroupConversation" class="friend-author">{{ item.author }}</span>
+                <div class="friend-bubble">
+                  <p class="text">{{ item.text }}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div v-else class="bubble bubble--me">
-            <p class="text">{{ item.text }}</p>
-          </div>
-        </template>
-      </div>
+            <div v-else class="bubble bubble--me">
+              <p class="text">{{ item.text }}</p>
+            </div>
+          </template>
+        </div>
+      </template>
     </div>
     <form class="composer" @submit.prevent>
       <button class="composer-button" type="button" aria-label="语音输入">
@@ -69,23 +78,245 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
-import { getConversationById } from './conversationData';
+
+interface ConversationMessage {
+  id: number;
+  type: 'message' | 'system';
+  sender?: 'friend' | 'me';
+  author?: string;
+  text: string;
+  time?: string;
+}
+
+interface ConversationDetail {
+  id: string;
+  name: string;
+  avatar?: string;
+  meta: string;
+  isGroup: boolean;
+  messages: ConversationMessage[];
+}
 
 const router = useRouter();
 const route = useRoute();
 
-const currentConversation = computed(() => {
-  const id = Number(route.params.id);
-  if (Number.isNaN(id)) {
-    return undefined;
+const mvuInitialized = ref(false);
+const loadError = ref<string | null>(null);
+const conversationData = ref<ConversationDetail | undefined>(undefined);
+
+// 从 MVU 变量加载聊天记录
+async function loadConversationFromMvu(contactName: string) {
+  try {
+    // 等待 MVU 初始化
+    await waitGlobalInitialized('Mvu');
+    mvuInitialized.value = true;
+
+    // 从聊天变量中获取 MVU 数据
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
+      default_value: {},
+    });
+
+    // 查找指定联系人
+    const contactInfo = contactsData[contactName];
+    if (!contactInfo || typeof contactInfo !== 'object') {
+      conversationData.value = undefined;
+      loadError.value = '未找到联系人';
+      return;
+    }
+
+    const contact = contactInfo as {
+      昵称?: string;
+      签名?: string;
+      头像?: string;
+      聊天记录?: Record<string, { is_user: boolean; message: string }>;
+    };
+
+    // 处理头像
+    let avatarUrl: string | undefined;
+    if (contact.头像) {
+      if (contact.头像.startsWith('char')) {
+        try {
+          const parts = contact.头像.split(':');
+          const charName = parts.length > 1 ? parts[1] : 'current';
+          const charAvatarPath = typeof getCharAvatarPath === 'function'
+            ? getCharAvatarPath(charName, true)
+            : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
+          avatarUrl = charAvatarPath || undefined;
+        } catch (error) {
+          console.warn(`[ConversationPage] 获取角色卡头像失败:`, error);
+        }
+      } else {
+        avatarUrl = contact.头像;
+      }
+    }
+
+    // 转换聊天记录
+    const messages: ConversationMessage[] = [];
+    if (contact.聊天记录) {
+      const sortedTimestamps = Object.keys(contact.聊天记录).sort(
+        (a, b) => Number(a) - Number(b)
+      );
+
+      for (const timestamp of sortedTimestamps) {
+        const msg = contact.聊天记录[timestamp];
+        if (msg && typeof msg === 'object') {
+          messages.push({
+            id: Number(timestamp),
+            type: 'message',
+            sender: msg.is_user ? 'me' : 'friend',
+            author: msg.is_user ? '我' : contact.昵称 || contactName,
+            text: msg.message,
+            time: formatTimestamp(Number(timestamp)),
+          });
+        }
+      }
+    }
+
+    conversationData.value = {
+      id: contactName,
+      name: contact.昵称 || contactName,
+      avatar: avatarUrl,
+      meta: contact.签名 || '',
+      isGroup: false,
+      messages,
+    };
+
+    loadError.value = null;
+  } catch (error) {
+    console.error('加载聊天记录失败:', error);
+    loadError.value = '聊天记录加载失败';
+    conversationData.value = undefined;
   }
-  return getConversationById(id);
+}
+
+// 格式化时间戳
+function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+// 监听 MVU 变量更新
+async function setupMvuListener() {
+  try {
+    await waitGlobalInitialized('Mvu');
+
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
+      try {
+        const contactName = route.params.id as string;
+        if (!contactName) return;
+
+        const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
+          default_value: {},
+        });
+
+        const contactInfo = contactsData[contactName];
+        if (!contactInfo || typeof contactInfo !== 'object') {
+          conversationData.value = undefined;
+          return;
+        }
+
+        const contact = contactInfo as {
+          昵称?: string;
+          签名?: string;
+          头像?: string;
+          聊天记录?: Record<string, { is_user: boolean; message: string }>;
+        };
+
+        // 处理头像
+        let avatarUrl: string | undefined;
+        if (contact.头像) {
+          if (contact.头像.startsWith('char')) {
+            try {
+              const parts = contact.头像.split(':');
+              const charName = parts.length > 1 ? parts[1] : 'current';
+              const charAvatarPath = typeof getCharAvatarPath === 'function'
+                ? getCharAvatarPath(charName, true)
+                : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
+              avatarUrl = charAvatarPath || undefined;
+            } catch (error) {
+              console.warn(`[ConversationPage] 获取角色卡头像失败:`, error);
+            }
+          } else {
+            avatarUrl = contact.头像;
+          }
+        }
+
+        // 转换聊天记录
+        const messages: ConversationMessage[] = [];
+        if (contact.聊天记录) {
+          const sortedTimestamps = Object.keys(contact.聊天记录).sort(
+            (a, b) => Number(a) - Number(b)
+          );
+
+          for (const timestamp of sortedTimestamps) {
+            const msg = contact.聊天记录[timestamp];
+            if (msg && typeof msg === 'object') {
+              messages.push({
+                id: Number(timestamp),
+                type: 'message',
+                sender: msg.is_user ? 'me' : 'friend',
+                author: msg.is_user ? '我' : contact.昵称 || contactName,
+                text: msg.message,
+                time: formatTimestamp(Number(timestamp)),
+              });
+            }
+          }
+        }
+
+        conversationData.value = {
+          id: contactName,
+          name: contact.昵称 || contactName,
+          avatar: avatarUrl,
+          meta: contact.签名 || '',
+          isGroup: false,
+          messages,
+        };
+      } catch (error) {
+        console.error('更新聊天记录失败:', error);
+      }
+    });
+  } catch (error) {
+    console.error('设置 MVU 监听器失败:', error);
+  }
+}
+
+onMounted(() => {
+  const contactName = route.params.id as string;
+  if (contactName) {
+    loadConversationFromMvu(contactName);
+    setupMvuListener();
+  }
 });
 
+const currentConversation = computed(() => conversationData.value);
+
 const isGroupConversation = computed(() => currentConversation.value?.isGroup ?? false);
+
+// 判断是否应该显示时间戳（第一条消息或与上一条消息时间间隔较大）
+function shouldShowTimestamp(item: ConversationMessage, index: number): boolean {
+  if (item.type === 'system') return false;
+  if (index === 0) return true;
+
+  const messages = currentConversation.value?.messages;
+  if (!messages) return false;
+
+  const prevItem = messages[index - 1];
+  if (prevItem.type === 'system') return true;
+
+  // 如果时间间隔超过5分钟，显示时间戳
+  const currentTime = item.id; // id 就是 timestamp
+  const prevTime = prevItem.id;
+  const timeDiff = currentTime - prevTime;
+  const fiveMinutes = 5 * 60 * 1000;
+
+  return timeDiff > fiveMinutes;
+}
 
 function goBack() {
   router.push({ name: 'chat-messages' });

@@ -48,6 +48,7 @@ interface Contact {
   userId: string;
   signature: string;
   avatar?: string;
+  contactName: string; // 联系人在 MVU 变量中的名称
 }
 
 interface ContactSection {
@@ -109,6 +110,7 @@ async function loadContactsFromMvu() {
           userId: contactInfo.昵称 || name,
           signature: contactInfo.签名 || '',
           avatar: avatarUrl,
+          contactName: name, // 保存原始联系人名称用于跳转
         });
       }
     }
@@ -164,6 +166,7 @@ async function setupMvuListener() {
               userId: contactInfo.昵称 || name,
               signature: contactInfo.签名 || '',
               avatar: avatarUrl,
+              contactName: name, // 保存原始联系人名称用于跳转
             });
           }
         }
