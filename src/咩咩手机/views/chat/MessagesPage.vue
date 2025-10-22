@@ -57,6 +57,7 @@ const router = useRouter();
 const messages = ref<MessageItem[]>([]);
 const mvuInitialized = ref(false);
 const loadError = ref<string | null>(null);
+const currentTime = ref<number>(Date.now()); // MVU 变量中的当前时间
 
 // 从 MVU 变量加载消息列表
 async function loadMessagesFromMvu() {
@@ -67,6 +68,14 @@ async function loadMessagesFromMvu() {
 
     // 从聊天变量中获取 MVU 数据
     const mvuData = Mvu.getMvuData({ type: 'chat' });
+
+    // 获取当前时间
+    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
+      default_value: Date.now(),
+    });
+    currentTime.value = typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Date.now();
+    console.log('[MessagesPage] 当前时间:', currentTime.value, new Date(currentTime.value));
+
     const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
       default_value: {},
     });
@@ -113,6 +122,8 @@ async function loadMessagesFromMvu() {
         }
       }
 
+      console.log('[MessagesPage] 联系人:', contactName, '最后消息时间:', lastTimestamp, new Date(lastTimestamp));
+
       messagesList.push({
         contactName,
         name: contact.昵称 || contactName,
@@ -135,31 +146,51 @@ async function loadMessagesFromMvu() {
   }
 }
 
-// 格式化时间戳
+// 格式化时间戳（相对于MVU当前时间）
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const oneDay = 24 * 60 * 60 * 1000;
+  const now = new Date(currentTime.value);
+  const diff = currentTime.value - timestamp;
 
+  // 小于1分钟
+  if (diff < 60 * 1000) {
+    return '刚刚';
+  }
+
+  // 小于1小时
+  if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000));
+    return `${minutes}分钟前`;
+  }
+
+  // 小于24小时（今天）
+  const oneDay = 24 * 60 * 60 * 1000;
   if (diff < oneDay && date.getDate() === now.getDate()) {
-    // 今天
-    const hours = date.getHours();
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const ampm = hours < 12 ? '上午' : '下午';
-    const hour12 = hours % 12 || 12;
-    return `${ampm} ${hour12}:${minutes}`;
-  } else if (diff < 2 * oneDay) {
-    // 昨天
+    const hours = Math.floor(diff / (60 * 60 * 1000));
+    if (hours < 24) {
+      return `${hours}小时前`;
+    }
+    // 超过几小时但仍在今天，显示具体时间
+    const h = date.getHours();
+    const m = date.getMinutes().toString().padStart(2, '0');
+    const ampm = h < 12 ? '上午' : '下午';
+    const hour12 = h % 12 || 12;
+    return `${ampm} ${hour12}:${m}`;
+  }
+
+  // 昨天
+  if (diff < 2 * oneDay && date.getDate() === now.getDate() - 1) {
     return '昨天';
-  } else if (diff < 7 * oneDay) {
-    // 一周内
+  }
+
+  // 一周内
+  if (diff < 7 * oneDay) {
     const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     return weekdays[date.getDay()];
-  } else {
-    // 更早
-    return `${date.getMonth() + 1}/${date.getDate()}`;
   }
+
+  // 更早
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 // 监听 MVU 变量更新
@@ -169,6 +200,12 @@ async function setupMvuListener() {
 
     eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
       try {
+        // 更新当前时间
+        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
+          default_value: Date.now(),
+        });
+        currentTime.value = typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Date.now();
+
         const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
           default_value: {},
         });
