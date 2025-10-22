@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import type { App, Component } from 'vue';
 import type { Router } from 'vue-router';
 import toastr from 'toastr';
@@ -13,6 +14,7 @@ let shadowHost: HTMLDivElement | null = null;
 let shadowRootRef: ShadowRoot | null = null;
 let shadowAppContainer: HTMLDivElement | null = null;
 let initPromise: Promise<void> | null = null;
+const pinia = createPinia();
 
 const STYLE_CLONE_ATTR = 'data-phone-style-clone';
 const BASE_STYLE_ATTR = 'data-phone-style-base';
@@ -203,6 +205,7 @@ async function initPhoneUI(): Promise<void> {
     }
 
     vueApp = createApp(phoneAppComponent);
+    vueApp.use(pinia);
     vueApp.use(phoneRouter);
     vueApp.mount(shadowAppContainer);
 

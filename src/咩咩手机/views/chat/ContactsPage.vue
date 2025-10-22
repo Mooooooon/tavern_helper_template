@@ -9,18 +9,18 @@
         <div class="section-title">{{ section.title }}</div>
         <button
           v-for="contact in section.items"
-          :key="`${section.keyPrefix}-${contact.id}`"
+          :key="`${section.keyPrefix}-${contact.contactName}`"
           class="contact-item"
           type="button"
         >
           <div class="avatar-wrapper">
             <img
-              :src="getAvatarSrc(contact.avatar, contact.id, 48)"
+              :src="getAvatarSrc(contact.avatar, contact.contactName, 48)"
               alt="联系人头像"
             >
           </div>
           <div class="contact-details">
-            <span class="contact-id">{{ contact.userId }}</span>
+            <span class="contact-id">{{ contact.displayName }}</span>
             <span class="contact-signature">{{ contact.signature }}</span>
           </div>
         </button>
@@ -40,128 +40,48 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
-
-interface Contact {
-  id: number;
-  userId: string;
-  signature: string;
-  avatar?: string;
-  contactName: string; // 联系人在 MVU 变量中的名称
-}
+import { computed, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { useChatStore } from '../../stores/chatStore';
 
 interface ContactSection {
   title: string;
   keyPrefix: string;
-  items: Contact[];
+  items: Array<{
+    contactName: string;
+    displayName: string;
+    signature: string;
+    avatar?: string;
+  }>;
 }
 
-const friends = ref<Contact[]>([]);
-const mvuInitialized = ref(false);
-const loadError = ref<string | null>(null);
-
-// 从 MVU 变量加载联系人
-async function loadContactsFromMvu() {
-  try {
-    // 等待 MVU 初始化
-    await waitGlobalInitialized('Mvu');
-    mvuInitialized.value = true;
-
-    // 从聊天变量中获取 MVU 数据
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
-    const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
-      default_value: {},
-    });
-
-    // 将 MVU 数据转换为 Contact 数组
-    const contactsList: Contact[] = [];
-    let idCounter = 1;
-
-    for (const [name, info] of Object.entries(contactsData)) {
-      if (typeof info === 'object' && info !== null) {
-        const contactInfo = info as { 昵称?: string; 签名?: string; 头像?: string };
-
-        const avatarUrl = resolveAvatar(contactInfo.头像);
-
-        contactsList.push({
-          id: idCounter++,
-          userId: contactInfo.昵称 || name,
-          signature: contactInfo.签名 || '',
-          avatar: avatarUrl,
-          contactName: name, // 保存原始联系人名称用于跳转
-        });
-      }
-    }
-
-    friends.value = contactsList;
-    loadError.value = null;
-  } catch (error) {
-    console.error('加载联系人失败:', error);
-    loadError.value = '联系人加载失败';
-    friends.value = [];
-  }
-}
-
-// 监听 MVU 变量更新
-async function setupMvuListener() {
-  try {
-    await waitGlobalInitialized('Mvu');
-
-    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
-      try {
-        const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
-          default_value: {},
-        });
-
-        const contactsList: Contact[] = [];
-        let idCounter = 1;
-
-        for (const [name, info] of Object.entries(contactsData)) {
-          if (typeof info === 'object' && info !== null) {
-            const contactInfo = info as { 昵称?: string; 签名?: string; 头像?: string };
-
-            const avatarUrl = resolveAvatar(contactInfo.头像);
-
-            contactsList.push({
-              id: idCounter++,
-              userId: contactInfo.昵称 || name,
-              signature: contactInfo.签名 || '',
-              avatar: avatarUrl,
-              contactName: name, // 保存原始联系人名称用于跳转
-            });
-          }
-        }
-
-        friends.value = contactsList;
-      } catch (error) {
-        console.error('更新联系人失败:', error);
-      }
-    });
-  } catch (error) {
-    console.error('设置 MVU 监听器失败:', error);
-  }
-}
+const chatStore = useChatStore();
+const { contactList } = storeToRefs(chatStore);
 
 onMounted(() => {
-  loadContactsFromMvu();
-  setupMvuListener();
+  void chatStore.ensureInitialized();
 });
 
-const hasContacts = computed(() => friends.value.length > 0);
+const hasContacts = computed(() => contactList.value.length > 0);
 
 const contactSections = computed<ContactSection[]>(() => {
-  const sections: ContactSection[] = [];
-
-  if (friends.value.length) {
-    sections.push({
-      title: '联系人',
-      keyPrefix: 'friend',
-      items: friends.value,
-    });
+  if (!contactList.value.length) {
+    return [];
   }
 
-  return sections;
+  return [
+    {
+      title: '联系人',
+      keyPrefix: 'friend',
+      items: contactList.value.map(item => ({
+        contactName: item.contactName,
+        displayName: item.displayName,
+        signature: item.signature,
+        avatar: item.avatar,
+      })),
+    },
+  ];
 });
 </script>
 

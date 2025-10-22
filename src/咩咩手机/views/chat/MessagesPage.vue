@@ -38,208 +38,81 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
+import { storeToRefs } from 'pinia';
+import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { useChatStore } from '../../stores/chatStore';
 
-interface MessageItem {
-  contactName: string; // MVU 变量中的联系人名称
-  name: string; // 显示的昵称
+interface DisplayMessage {
+  contactName: string;
+  name: string;
   lastMessage: string;
-  time: string;
   timestamp: number;
+  avatar?: string;
+  time: string;
   unread?: number;
   pinned?: boolean;
-  avatar?: string;
 }
 
 const router = useRouter();
-const messages = ref<MessageItem[]>([]);
-const mvuInitialized = ref(false);
-const loadError = ref<string | null>(null);
-const currentTime = ref<number>(Date.now()); // MVU 变量中的当前时间
+const chatStore = useChatStore();
+const { messageSummaries, currentTime } = storeToRefs(chatStore);
 
-// 从 MVU 变量加载消息列表
-async function loadMessagesFromMvu() {
-  try {
-    // 等待 MVU 初始化
-    await waitGlobalInitialized('Mvu');
-    mvuInitialized.value = true;
+onMounted(() => {
+  void chatStore.ensureInitialized();
+});
 
-    // 从聊天变量中获取 MVU 数据
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
-
-    // 获取当前时间
-    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
-      default_value: Date.now(),
-    });
-    currentTime.value = typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Date.now();
-    console.log('[MessagesPage] 当前时间:', currentTime.value, new Date(currentTime.value));
-
-    const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
-      default_value: {},
-    });
-
-    // 将 MVU 数据转换为 MessageItem 数组
-    const messagesList: MessageItem[] = [];
-
-    for (const [contactName, info] of Object.entries(contactsData)) {
-      if (typeof info !== 'object' || info === null) continue;
-
-      const contact = info as {
-        昵称?: string;
-        签名?: string;
-        头像?: string;
-        聊天记录?: Record<string, { is_user: boolean; message: string }>;
-      };
-
-      // 获取最后一条聊天记录
-      if (!contact.聊天记录) continue;
-
-      const timestamps = Object.keys(contact.聊天记录).map(Number).sort((a, b) => b - a);
-      if (timestamps.length === 0) continue;
-
-      const lastTimestamp = timestamps[0];
-      const lastMsg = contact.聊天记录[String(lastTimestamp)];
-      if (!lastMsg) continue;
-
-      const avatarUrl = resolveAvatar(contact.头像);
-
-      console.log('[MessagesPage] 联系人:', contactName, '最后消息时间:', lastTimestamp, new Date(lastTimestamp));
-
-      messagesList.push({
-        contactName,
-        name: contact.昵称 || contactName,
-        lastMessage: lastMsg.message,
-        time: formatTimestamp(lastTimestamp),
-        timestamp: lastTimestamp,
-        avatar: avatarUrl,
-      });
-    }
-
-    // 按时间戳排序（最新的在前）
-    messagesList.sort((a, b) => b.timestamp - a.timestamp);
-
-    messages.value = messagesList;
-    loadError.value = null;
-  } catch (error) {
-    console.error('加载消息列表失败:', error);
-    loadError.value = '消息列表加载失败';
-    messages.value = [];
-  }
-}
-
-// 格式化时间戳（相对于MVU当前时间）
-function formatTimestamp(timestamp: number): string {
+function formatTimestamp(timestamp: number, nowMs: number): string {
   const date = new Date(timestamp);
-  const now = new Date(currentTime.value);
-  const diff = currentTime.value - timestamp;
+  const diff = nowMs - timestamp;
 
-  // 小于1分钟
   if (diff < 60 * 1000) {
     return '刚刚';
   }
 
-  // 小于1小时
   if (diff < 60 * 60 * 1000) {
     const minutes = Math.floor(diff / (60 * 1000));
     return `${minutes}分钟前`;
   }
 
-  // 小于24小时（今天）
+  const now = new Date(nowMs);
   const oneDay = 24 * 60 * 60 * 1000;
+
   if (diff < oneDay && date.getDate() === now.getDate()) {
     const hours = Math.floor(diff / (60 * 60 * 1000));
     if (hours < 24) {
       return `${hours}小时前`;
     }
-    // 超过几小时但仍在今天，显示具体时间
-    const h = date.getHours();
-    const m = date.getMinutes().toString().padStart(2, '0');
-    const ampm = h < 12 ? '上午' : '下午';
-    const hour12 = h % 12 || 12;
-    return `${ampm} ${hour12}:${m}`;
+    const hour = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hour < 12 ? '上午' : '下午';
+    const hour12 = hour % 12 || 12;
+    return `${ampm} ${hour12}:${minutes}`;
   }
 
-  // 昨天
   if (diff < 2 * oneDay && date.getDate() === now.getDate() - 1) {
     return '昨天';
   }
 
-  // 一周内
   if (diff < 7 * oneDay) {
     const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     return weekdays[date.getDay()];
   }
 
-  // 更早
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-// 监听 MVU 变量更新
-async function setupMvuListener() {
-  try {
-    await waitGlobalInitialized('Mvu');
-
-    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
-      try {
-        // 更新当前时间
-        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
-          default_value: Date.now(),
-        });
-        currentTime.value = typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Date.now();
-
-        const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
-          default_value: {},
-        });
-
-        const messagesList: MessageItem[] = [];
-
-        for (const [contactName, info] of Object.entries(contactsData)) {
-          if (typeof info !== 'object' || info === null) continue;
-
-          const contact = info as {
-            昵称?: string;
-            签名?: string;
-            头像?: string;
-            聊天记录?: Record<string, { is_user: boolean; message: string }>;
-          };
-
-          if (!contact.聊天记录) continue;
-
-          const timestamps = Object.keys(contact.聊天记录).map(Number).sort((a, b) => b - a);
-          if (timestamps.length === 0) continue;
-
-          const lastTimestamp = timestamps[0];
-          const lastMsg = contact.聊天记录[String(lastTimestamp)];
-          if (!lastMsg) continue;
-
-          const avatarUrl = resolveAvatar(contact.头像);
-
-          messagesList.push({
-            contactName,
-            name: contact.昵称 || contactName,
-            lastMessage: lastMsg.message,
-            time: formatTimestamp(lastTimestamp),
-            timestamp: lastTimestamp,
-            avatar: avatarUrl,
-          });
-        }
-
-        messagesList.sort((a, b) => b.timestamp - a.timestamp);
-        messages.value = messagesList;
-      } catch (error) {
-        console.error('更新消息列表失败:', error);
-      }
-    });
-  } catch (error) {
-    console.error('设置 MVU 监听器失败:', error);
-  }
-}
-
-onMounted(() => {
-  loadMessagesFromMvu();
-  setupMvuListener();
+const messages = computed<DisplayMessage[]>(() => {
+  const now = currentTime.value ?? Date.now();
+  return messageSummaries.value.map(summary => ({
+    contactName: summary.contactName,
+    name: summary.name,
+    lastMessage: summary.lastMessage,
+    timestamp: summary.timestamp,
+    avatar: summary.avatar,
+    time: formatTimestamp(summary.timestamp, now),
+  }));
 });
 
 const filteredMessages = computed(() =>

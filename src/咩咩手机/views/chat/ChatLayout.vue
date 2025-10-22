@@ -80,9 +80,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
+import { useChatStore } from '../../stores/chatStore';
 
 const ownerName = ref('咩咩助手');
 const ownerStatus = '在线';
@@ -91,7 +92,7 @@ const ownerAvatar = ref(defaultOwnerAvatar);
 
 const route = useRoute();
 const router = useRouter();
-const conversationInfo = ref<{ name: string; meta: string } | undefined>(undefined);
+const chatStore = useChatStore();
 
 const isMessagesActive = computed(() => {
   if (route.name === 'chat-messages') {
@@ -104,52 +105,19 @@ const activeConversation = computed(() => {
   if (route.name !== 'chat-conversation') {
     return undefined;
   }
-  return conversationInfo.value;
-});
-
-// 从 MVU 变量加载对话信息
-async function loadConversationInfo(contactName: string) {
-  try {
-    await waitGlobalInitialized('Mvu');
-
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
-    const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
-      default_value: {},
-    });
-
-    const contactInfo = contactsData[contactName];
-    if (!contactInfo || typeof contactInfo !== 'object') {
-      conversationInfo.value = undefined;
-      return;
-    }
-
-    const contact = contactInfo as {
-      昵称?: string;
-      签名?: string;
-    };
-
-    conversationInfo.value = {
-      name: contact.昵称 || contactName,
-      meta: contact.签名 || '',
-    };
-  } catch (error) {
-    console.error('[ChatLayout] 加载对话信息失败:', error);
-    conversationInfo.value = undefined;
+  const contactName = typeof route.params.id === 'string' ? route.params.id : undefined;
+  if (!contactName) {
+    return undefined;
   }
-}
-
-// 监听路由变化
-watch(
-  () => route.params.id,
-  (newId) => {
-    if (route.name === 'chat-conversation' && typeof newId === 'string') {
-      loadConversationInfo(newId);
-    } else {
-      conversationInfo.value = undefined;
-    }
-  },
-  { immediate: true }
-);
+  const detail = chatStore.contactDetail(contactName);
+  if (!detail) {
+    return undefined;
+  }
+  return {
+    name: detail.displayName,
+    meta: detail.signature,
+  };
+});
 
 function goBack() {
   router.push({ name: 'chat-messages' });
@@ -207,6 +175,7 @@ async function loadOwnerAvatar() {
 }
 
 onMounted(() => {
+  void chatStore.ensureInitialized();
   void loadOwnerName();
   void loadOwnerAvatar();
 });
