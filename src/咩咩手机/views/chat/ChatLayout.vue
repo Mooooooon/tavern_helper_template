@@ -147,7 +147,8 @@ onMounted(() => {
 .chat-layout {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background-color: #f6f6f7;
 }
 
