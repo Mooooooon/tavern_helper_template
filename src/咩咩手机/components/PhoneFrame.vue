@@ -200,7 +200,7 @@ function handleRouteTouchEnd(event: TouchEvent) {
 .phone-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 19.5;
+  aspect-ratio: 9 / 18.6;
   display: flex;
   justify-content: center;
   align-items: stretch;

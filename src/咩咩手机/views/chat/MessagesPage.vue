@@ -1,11 +1,13 @@
 <template>
   <div class="messages-page">
     <div v-if="filteredMessages.length" class="message-list">
-      <div
+      <button
         v-for="message in filteredMessages"
         :key="message.id"
         class="message-item"
         :class="{ pinned: message.pinned }"
+        type="button"
+        @click="openConversation(message.id)"
       >
         <div class="avatar-wrapper">
           <img :src="getAvatarSrc(message.avatar, message.id, 48)" alt="avatar">
@@ -20,7 +22,7 @@
             <span class="last-message">{{ message.lastMessage }}</span>
           </div>
         </div>
-      </div>
+      </button>
     </div>
 
     <div v-else class="empty-state">
@@ -37,6 +39,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 
 interface MessageItem {
@@ -48,6 +51,8 @@ interface MessageItem {
   pinned?: boolean;
   avatar?: string;
 }
+
+const router = useRouter();
 
 const messages = ref<MessageItem[]>([
   {
@@ -166,6 +171,10 @@ const filteredMessages = computed(() =>
     .slice()
     .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned)),
 );
+
+function openConversation(id: number) {
+  router.push({ name: 'chat-conversation', params: { id } });
+}
 </script>
 
 <style scoped>
@@ -190,6 +199,16 @@ const filteredMessages = computed(() =>
   display: flex;
   gap: 12px;
   padding: 12px 12px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.message-item:focus-visible {
+  outline: 2px solid #376afc;
+  outline-offset: -2px;
 }
 
 .message-item.pinned {

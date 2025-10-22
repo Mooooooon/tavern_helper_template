@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-status-bar" :style="{ backgroundColor: statusBarColor }">
+  <div class="phone-status-bar" :style="{ backgroundColor: statusBarColor }" @click="handleStatusBarTap">
     <div class="status-left">
       <span class="time">{{ currentTime }}</span>
     </div>
@@ -30,13 +30,16 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watchEffect } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const currentTime = ref('');
 const route = useRoute();
+const router = useRouter();
 const statusBarColor = ref('transparent');
 
 let timeInterval: number | null = null;
+let lastTapTimestamp = 0;
+const DOUBLE_TAP_THRESHOLD = 350;
 
 watchEffect(() => {
   statusBarColor.value = (route.meta.statusBarColor as string) || 'transparent';
@@ -47,6 +50,22 @@ function updateTime() {
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   currentTime.value = `${hours}:${minutes}`;
+}
+
+function navigateHome() {
+  if (route.name !== 'home') {
+    router.push({ name: 'home' }).catch(() => {});
+  }
+}
+
+function handleStatusBarTap() {
+  const now = Date.now();
+  if (now - lastTapTimestamp < DOUBLE_TAP_THRESHOLD) {
+    lastTapTimestamp = 0;
+    navigateHome();
+    return;
+  }
+  lastTapTimestamp = now;
 }
 
 onMounted(() => {
@@ -68,7 +87,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 22px 12px;
+  padding: 14px 22px 12px;
   color: #1f2330;
   font-weight: 600;
   letter-spacing: 0.4px;
