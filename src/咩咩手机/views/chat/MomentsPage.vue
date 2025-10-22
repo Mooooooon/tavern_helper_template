@@ -1,26 +1,18 @@
 <template>
   <div class="moments-page">
     <header class="moments-header">
-      <button @click="$router.back()" class="back-button" type="button" aria-label="返回">
+      <button @click="$router.back()" class="header-button header-button--back" type="button" aria-label="返回">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
         </svg>
       </button>
       <span>动态</span>
-      <button class="publish-button" type="button" aria-label="发布动态">
+      <button class="icon-button" type="button" aria-label="发布动态">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M12 5v6H6v2h6v6h2v-6h6v-2h-6V5z" />
         </svg>
       </button>
     </header>
-
-    <div class="profile-section">
-      <img :src="getAvatarSrc(profile.avatar, 'profile', 80)" alt="User Avatar" class="profile-avatar">
-      <div class="profile-info">
-        <div class="profile-id">{{ profile.name }}</div>
-        <div class="profile-bio">{{ profile.bio }}</div>
-      </div>
-    </div>
 
     <main class="moments-list">
       <article v-for="moment in moments" :key="moment.id" class="moment-card">
@@ -43,6 +35,9 @@
           <span class="moment-meta">👍 {{ moment.likes }}</span>
           <span class="moment-meta">💬 {{ moment.comments }}</span>
         </footer>
+        <div class="moment-reply">
+          <input class="moment-reply-input" type="text" placeholder="说点什么吧">
+        </div>
       </article>
     </main>
   </div>
@@ -51,12 +46,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
-
-interface Profile {
-  name: string;
-  bio: string;
-  avatar?: string;
-}
 
 interface MomentItem {
   id: number;
@@ -67,11 +56,6 @@ interface MomentItem {
   comments: number;
   avatar?: string;
 }
-
-const profile = ref<Profile>({
-  name: '咩咩助手',
-  bio: '愿你所有的星辰都闪烁着希望。',
-});
 
 const moments = ref<MomentItem[]>([
   {
@@ -124,87 +108,63 @@ const moments = ref<MomentItem[]>([
   font-size: 16px;
 }
 
-.back-button,
-.publish-button {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid #e0e0e2;
-  background: #f8f8f9;
-  color: #333;
+.header-button {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  background: none;
+  color: #424249;
+  padding: 4px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: color 0.2s ease;
 }
 
-.back-button:hover,
-.publish-button:hover {
-  background: #ededf0;
-}
-
-.back-button svg,
-.publish-button svg {
-  width: 18px;
-  height: 18px;
-}
-
-.profile-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 16px;
-  background-color: #fff;
-  border-bottom: 1px solid #ededf0;
-}
-
-.profile-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 16px;
-  object-fit: cover;
-  border: 1px solid #e5e5e8;
-}
-
-.profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.profile-id {
-  font-size: 18px;
-  font-weight: 600;
+.header-button:hover {
   color: #1f1f1f;
 }
 
-.profile-bio {
-  color: #5a5a5f;
-  font-size: 13px;
-  max-width: 220px;
+.header-button svg {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #444;
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon-button svg {
+  width: 32px;
+  height: 32px;
 }
 
 .moments-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
   scrollbar-width: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  background-color: #ffffff;
 }
 
 .moment-card {
   background-color: #fff;
-  border-radius: 16px;
   padding: 16px;
-  border: 1px solid #ededf0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  border-bottom: 1px solid #ededf0;
 }
 
 .moment-card-header {
@@ -274,6 +234,25 @@ const moments = ref<MomentItem[]>([
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.moment-reply {
+  margin-top: 4px;
+}
+
+.moment-reply-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background-color: #f3f4f6;
+  color: #2c2c2e;
+  font-size: 14px;
+  outline: none;
+}
+
+.moment-reply-input::placeholder {
+  color: #9b9b9f;
 }
 
 .moments-list:hover {

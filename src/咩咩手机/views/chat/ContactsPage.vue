@@ -1,44 +1,23 @@
 <template>
   <div class="contacts-page">
-    <div class="contacts-toolbar">
-      <input
-        v-model="searchText"
-        class="search-input"
-        type="search"
-        placeholder="搜索联系人或备注"
+    <div v-if="contacts.length" class="contacts-list">
+      <button
+        v-for="contact in contacts"
+        :key="contact.id"
+        class="contact-item"
+        type="button"
       >
-      <button class="toolbar-button" type="button" aria-label="添加联系人">
-        <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M12 5v6H6v2h6v6h2v-6h6v-2h-6V5z" />
-        </svg>
-      </button>
-    </div>
-
-    <div v-if="hasContacts" class="contacts-list">
-      <section
-        v-for="group in filteredGroups"
-        :key="group.key"
-        v-show="group.contacts.length"
-        class="contact-group"
-      >
-        <header class="group-header">
-          <span>{{ group.label }}</span>
-        </header>
-        <div class="group-content">
-          <div
-            v-for="contact in group.contacts"
-            :key="contact.id"
-            class="contact-item"
+        <div class="avatar-wrapper">
+          <img
+            :src="getAvatarSrc(contact.avatar, contact.id, 48)"
+            alt="联系人头像"
           >
-            <img :src="getAvatarSrc(contact.avatar, contact.id, 42)" alt="avatar">
-            <div class="contact-main">
-              <span class="contact-name">{{ contact.name }}</span>
-              <span v-if="contact.note" class="contact-note">{{ contact.note }}</span>
-            </div>
-            <span v-if="contact.status" class="contact-status">{{ contact.status }}</span>
-          </div>
         </div>
-      </section>
+        <div class="contact-details">
+          <span class="contact-id">{{ contact.userId }}</span>
+          <span class="contact-signature">{{ contact.signature }}</span>
+        </div>
+      </button>
     </div>
 
     <div v-else class="empty-state">
@@ -54,81 +33,68 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 
 interface Contact {
   id: number;
-  name: string;
-  note?: string;
-  status?: string;
+  userId: string;
+  signature: string;
   avatar?: string;
 }
 
-interface ContactGroup {
-  key: string;
-  label: string;
-  contacts: Contact[];
-}
-
-const searchText = ref('');
-
-const contactGroups = ref<ContactGroup[]>([
+const contacts = ref<Contact[]>([
   {
-    key: 'star',
-    label: '星标好友',
-    contacts: [
-      { id: 1, name: '喵喵', note: '最常联系', status: '在线' },
-      { id: 2, name: '小狐狸', note: '游戏搭档', status: '离线' },
-    ],
+    id: 1,
+    userId: 'meow_meow',
+    signature: '最喜欢和你一起冒险的喵～',
   },
   {
-    key: 'a',
-    label: 'A',
-    contacts: [
-      { id: 3, name: '阿波罗', note: '项目负责人' },
-      { id: 4, name: '阿狸' },
-    ],
+    id: 2,
+    userId: 'luna_fox',
+    signature: '夜色中总有光亮',
   },
   {
-    key: 'c',
-    label: 'C',
-    contacts: [
-      { id: 5, name: 'Choco', note: '咖啡店老板', status: '忙碌' },
-      { id: 6, name: 'Cici', note: '插画师' },
-    ],
+    id: 3,
+    userId: 'apollo.dev',
+    signature: '代码与宇宙都充满秩序',
   },
   {
-    key: 's',
-    label: 'S',
-    contacts: [
-      { id: 7, name: 'Stone', note: '健身伙伴' },
-      { id: 8, name: 'Starry', status: '在线' },
-    ],
+    id: 4,
+    userId: 'cici.draws',
+    signature: '画下每一帧的浪漫',
+  },
+  {
+    id: 5,
+    userId: 'stone.gym',
+    signature: '坚持和汗水总会发光',
+  },
+  {
+    id: 6,
+    userId: 'starry_night',
+    signature: '收藏银河碎片的女孩',
+  },
+  {
+    id: 7,
+    userId: 'choco.cafe',
+    signature: '一杯手冲一段故事',
+  },
+  {
+    id: 8,
+    userId: 'paperplane',
+    signature: '飞向远方的纸飞机',
+  },
+  {
+    id: 9,
+    userId: 'nebula.team',
+    signature: '让创意缓缓落地',
+  },
+  {
+    id: 10,
+    userId: 'shepherd.mom',
+    signature: '要记得按时吃饭呀',
   },
 ]);
-
-const filteredGroups = computed(() => {
-  const keyword = searchText.value.trim().toLowerCase();
-
-  if (!keyword) {
-    return contactGroups.value;
-  }
-
-  return contactGroups.value
-    .map((group) => ({
-      ...group,
-      contacts: group.contacts.filter((contact) => {
-        const text = `${contact.name} ${contact.note ?? ''} ${contact.status ?? ''}`.toLowerCase();
-        return text.includes(keyword);
-      }),
-    }))
-    .filter((group) => group.contacts.length > 0);
-});
-
-const hasContacts = computed(() =>
-  filteredGroups.value.some((group) => group.contacts.length > 0),
-);
 </script>
 
 <style scoped>
@@ -136,103 +102,37 @@ const hasContacts = computed(() =>
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 12px;
-  gap: 12px;
-  background: #f6f6f7;
-}
-
-.contacts-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.search-input {
-  flex: 1;
-  padding: 9px 14px;
-  border-radius: 12px;
-  border: 1px solid #e0e0e2;
-  background-color: #fff;
-  font-size: 14px;
-  color: #2c2c2e;
-  transition: border-color 0.2s ease;
-}
-
-.search-input::placeholder {
-  color: #9b9b9f;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #1f1f1f;
-}
-
-.toolbar-button {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  border: 1px solid #e0e0e2;
-  background: #f8f8f9;
-  color: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.toolbar-button:hover {
-  background: #ededf0;
-}
-
-.toolbar-button svg {
-  width: 18px;
-  height: 18px;
+  padding: 0;
+  gap: 16px;
+  background: #ffffff;
 }
 
 .contacts-list {
   flex: 1;
   overflow-y: auto;
-  padding-right: 4px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+  padding-right: 4px;
   scrollbar-width: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-}
-
-.contact-group {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid #ededf0;
-  overflow: hidden;
-}
-
-.group-header {
-  padding: 10px 16px;
-  background: #f5f5f6;
-  font-size: 13px;
-  color: #5a5a5f;
-  font-weight: 600;
-}
-
-.group-content {
-  display: flex;
-  flex-direction: column;
 }
 
 .contact-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f1f3;
-  transition: background 0.2s ease;
+  padding: 14px 18px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
-.contact-item:last-of-type {
-  border-bottom: none;
+.contact-item:focus-visible {
+  outline: 2px solid #376afc;
+  outline-offset: -2px;
 }
 
 .contact-item:hover {
@@ -252,51 +152,47 @@ const hasContacts = computed(() =>
   width: 4px;
 }
 
+.contacts-list:hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .contacts-list:hover::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 999px;
 }
 
-.contacts-list:hover::-webkit-scrollbar-track {
-  background: transparent;
+.avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
 }
 
-.contact-item img {
-  width: 42px;
-  height: 42px;
+.avatar-wrapper img {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #e5e5e8;
 }
 
-.contact-main {
+.contact-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
-.contact-name {
+.contact-id {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   color: #1f1f1f;
 }
 
-.contact-note {
-  font-size: 12px;
+.contact-signature {
+  font-size: 13px;
   color: #5a5a5f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.contact-status {
-  font-size: 12px;
-  color: #3d3d40;
-  background: #ededf0;
-  padding: 4px 8px;
-  border-radius: 999px;
-  flex-shrink: 0;
 }
 
 .empty-state {
