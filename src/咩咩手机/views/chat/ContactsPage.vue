@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 
 interface Contact {
@@ -56,97 +56,143 @@ interface ContactSection {
   items: Contact[];
 }
 
-const friends = ref<Contact[]>([
-  {
-    id: 1,
-    userId: 'meow_meow',
-    signature: '最喜欢和你一起冒险的喵～',
-  },
-  {
-    id: 2,
-    userId: 'luna_fox',
-    signature: '夜色中总有光亮',
-  },
-  {
-    id: 3,
-    userId: 'apollo.dev',
-    signature: '代码与宇宙都充满秩序',
-  },
-  {
-    id: 4,
-    userId: 'cici.draws',
-    signature: '画下每一帧的浪漫',
-  },
-  {
-    id: 5,
-    userId: 'stone.gym',
-    signature: '坚持和汗水总会发光',
-  },
-  {
-    id: 6,
-    userId: 'starry_night',
-    signature: '收藏银河碎片的女孩',
-  },
-  {
-    id: 7,
-    userId: 'choco.cafe',
-    signature: '一杯手冲一段故事',
-  },
-  {
-    id: 8,
-    userId: 'paperplane',
-    signature: '飞向远方的纸飞机',
-  },
-  {
-    id: 9,
-    userId: 'nebula.team',
-    signature: '让创意缓缓落地',
-  },
-  {
-    id: 10,
-    userId: 'shepherd.mom',
-    signature: '要记得按时吃饭呀',
-  },
-]);
+const friends = ref<Contact[]>([]);
+const mvuInitialized = ref(false);
+const loadError = ref<string | null>(null);
 
-const groups = ref<Contact[]>([
-  {
-    id: 101,
-    userId: '银河探险队',
-    signature: '成员 12 | 每周末出发',
-  },
-  {
-    id: 102,
-    userId: '咩咩工作室',
-    signature: '灵感随时在这里爆发',
-  },
-  {
-    id: 103,
-    userId: '星云咖啡角',
-    signature: '来杯拿铁，聊聊新点子',
-  },
-]);
+// 从 MVU 变量加载联系人
+async function loadContactsFromMvu() {
+  try {
+    // 等待 MVU 初始化
+    await waitGlobalInitialized('Mvu');
+    mvuInitialized.value = true;
 
-const hasContacts = computed(
-  () => friends.value.length > 0 || groups.value.length > 0,
-);
+    // 从聊天变量中获取 MVU 数据
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
+      default_value: {},
+    });
+
+    // 将 MVU 数据转换为 Contact 数组
+    const contactsList: Contact[] = [];
+    let idCounter = 1;
+
+    for (const [name, info] of Object.entries(contactsData)) {
+      if (typeof info === 'object' && info !== null) {
+        const contactInfo = info as { 昵称?: string; 签名?: string; 头像?: string };
+
+        // 处理头像
+        let avatarUrl: string | undefined;
+        if (contactInfo.头像) {
+          if (contactInfo.头像.startsWith('char')) {
+            // 使用角色卡头像
+            // 格式: "char" 或 "char:角色卡名称"
+            try {
+              const parts = contactInfo.头像.split(':');
+              const charName = parts.length > 1 ? parts[1] : 'current';
+
+              const charAvatarPath = typeof getCharAvatarPath === 'function'
+                ? getCharAvatarPath(charName, true)
+                : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
+              avatarUrl = charAvatarPath || undefined;
+            } catch (error) {
+              console.warn(`[ContactsPage] 获取角色卡头像失败:`, error);
+            }
+          } else {
+            // 使用网络 URL
+            avatarUrl = contactInfo.头像;
+          }
+        }
+
+        contactsList.push({
+          id: idCounter++,
+          userId: contactInfo.昵称 || name,
+          signature: contactInfo.签名 || '',
+          avatar: avatarUrl,
+        });
+      }
+    }
+
+    friends.value = contactsList;
+    loadError.value = null;
+  } catch (error) {
+    console.error('加载联系人失败:', error);
+    loadError.value = '联系人加载失败';
+    friends.value = [];
+  }
+}
+
+// 监听 MVU 变量更新
+async function setupMvuListener() {
+  try {
+    await waitGlobalInitialized('Mvu');
+
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
+      try {
+        const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
+          default_value: {},
+        });
+
+        const contactsList: Contact[] = [];
+        let idCounter = 1;
+
+        for (const [name, info] of Object.entries(contactsData)) {
+          if (typeof info === 'object' && info !== null) {
+            const contactInfo = info as { 昵称?: string; 签名?: string; 头像?: string };
+
+            // 处理头像
+            let avatarUrl: string | undefined;
+            if (contactInfo.头像) {
+              if (contactInfo.头像 === 'char') {
+                // 使用当前角色卡头像
+                try {
+                  const charAvatarPath = typeof getCharAvatarPath === 'function'
+                    ? getCharAvatarPath('current', true)
+                    : (window as any).TavernHelper?.getCharAvatarPath?.('current', true);
+                  avatarUrl = charAvatarPath || undefined;
+                } catch (error) {
+                  console.warn(`[ContactsPage] 获取当前角色卡头像失败:`, error);
+                }
+              } else {
+                // 使用网络 URL
+                avatarUrl = contactInfo.头像;
+              }
+            }
+
+            contactsList.push({
+              id: idCounter++,
+              userId: contactInfo.昵称 || name,
+              signature: contactInfo.签名 || '',
+              avatar: avatarUrl,
+            });
+          }
+        }
+
+        friends.value = contactsList;
+      } catch (error) {
+        console.error('更新联系人失败:', error);
+      }
+    });
+  } catch (error) {
+    console.error('设置 MVU 监听器失败:', error);
+  }
+}
+
+onMounted(() => {
+  loadContactsFromMvu();
+  setupMvuListener();
+});
+
+const hasContacts = computed(() => friends.value.length > 0);
 
 const contactSections = computed<ContactSection[]>(() => {
   const sections: ContactSection[] = [];
 
   if (friends.value.length) {
     sections.push({
-      title: '好友',
+      title: '联系人',
       keyPrefix: 'friend',
       items: friends.value,
-    });
-  }
-
-  if (groups.value.length) {
-    sections.push({
-      title: '群组',
-      keyPrefix: 'group',
-      items: groups.value,
     });
   }
 
