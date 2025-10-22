@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { useChatStore } from '../../stores/chatStore';
@@ -58,10 +58,6 @@ interface ContactSection {
 
 const chatStore = useChatStore();
 const { contactList } = storeToRefs(chatStore);
-
-onMounted(() => {
-  void chatStore.ensureInitialized();
-});
 
 const hasContacts = computed(() => contactList.value.length > 0);
 

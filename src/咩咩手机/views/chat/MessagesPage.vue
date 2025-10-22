@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
@@ -58,10 +58,6 @@ interface DisplayMessage {
 const router = useRouter();
 const chatStore = useChatStore();
 const { messageSummaries, currentTime } = storeToRefs(chatStore);
-
-onMounted(() => {
-  void chatStore.ensureInitialized();
-});
 
 function formatTimestamp(timestamp: number, nowMs: number): string {
   const date = new Date(timestamp);
