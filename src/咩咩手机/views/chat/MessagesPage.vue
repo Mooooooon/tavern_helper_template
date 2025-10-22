@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
 
 interface MessageItem {
   contactName: string; // MVU 变量中的联系人名称
@@ -103,24 +103,7 @@ async function loadMessagesFromMvu() {
       const lastMsg = contact.聊天记录[String(lastTimestamp)];
       if (!lastMsg) continue;
 
-      // 处理头像
-      let avatarUrl: string | undefined;
-      if (contact.头像) {
-        if (contact.头像.startsWith('char')) {
-          try {
-            const parts = contact.头像.split(':');
-            const charName = parts.length > 1 ? parts[1] : 'current';
-            const charAvatarPath = typeof getCharAvatarPath === 'function'
-              ? getCharAvatarPath(charName, true)
-              : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
-            avatarUrl = charAvatarPath || undefined;
-          } catch (error) {
-            console.warn(`[MessagesPage] 获取角色卡头像失败:`, error);
-          }
-        } else {
-          avatarUrl = contact.头像;
-        }
-      }
+      const avatarUrl = resolveAvatar(contact.头像);
 
       console.log('[MessagesPage] 联系人:', contactName, '最后消息时间:', lastTimestamp, new Date(lastTimestamp));
 
@@ -231,23 +214,7 @@ async function setupMvuListener() {
           const lastMsg = contact.聊天记录[String(lastTimestamp)];
           if (!lastMsg) continue;
 
-          let avatarUrl: string | undefined;
-          if (contact.头像) {
-            if (contact.头像.startsWith('char')) {
-              try {
-                const parts = contact.头像.split(':');
-                const charName = parts.length > 1 ? parts[1] : 'current';
-                const charAvatarPath = typeof getCharAvatarPath === 'function'
-                  ? getCharAvatarPath(charName, true)
-                  : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
-                avatarUrl = charAvatarPath || undefined;
-              } catch (error) {
-                console.warn(`[MessagesPage] 获取角色卡头像失败:`, error);
-              }
-            } else {
-              avatarUrl = contact.头像;
-            }
-          }
+          const avatarUrl = resolveAvatar(contact.头像);
 
           messagesList.push({
             contactName,

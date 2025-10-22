@@ -82,9 +82,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
 
-const ownerName = '咩咩助手';
+const ownerName = ref('咩咩助手');
 const ownerStatus = '在线';
 const defaultOwnerAvatar = getAvatarSrc(undefined, 'owner', 40);
 const ownerAvatar = ref(defaultOwnerAvatar);
@@ -155,6 +155,29 @@ function goBack() {
   router.push({ name: 'chat-messages' });
 }
 
+async function loadOwnerName() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (typeof triggerSlash === 'function') {
+      const userName = await triggerSlash('/pass {{user}}');
+      if (userName && userName !== 'undefined') {
+        ownerName.value = userName;
+        return;
+      }
+    }
+
+    const helperUserName = await window.TavernHelper?.triggerSlash?.('/pass {{user}}');
+    if (helperUserName && helperUserName !== 'undefined') {
+      ownerName.value = helperUserName;
+    }
+  } catch (error) {
+    console.warn('[ChatLayout] 获取用户名失败', error);
+  }
+}
+
 async function loadOwnerAvatar() {
   if (typeof window === 'undefined') {
     return;
@@ -163,13 +186,18 @@ async function loadOwnerAvatar() {
   try {
     if (typeof triggerSlash === 'function') {
       const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
-      if (avatarPath && avatarPath !== 'undefined') {
+      const resolved = resolveAvatar(avatarPath);
+      if (resolved && resolved !== 'undefined') {
+        ownerAvatar.value = resolved;
+        return;
+      }
+      if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
         ownerAvatar.value = avatarPath;
         return;
       }
     }
 
-    const helperAvatar = window.TavernHelper?.getCharAvatarPath?.('current', true);
+    const helperAvatar = resolveAvatar('char');
     if (helperAvatar) {
       ownerAvatar.value = helperAvatar;
     }
@@ -179,6 +207,7 @@ async function loadOwnerAvatar() {
 }
 
 onMounted(() => {
+  void loadOwnerName();
   void loadOwnerAvatar();
 });
 </script>

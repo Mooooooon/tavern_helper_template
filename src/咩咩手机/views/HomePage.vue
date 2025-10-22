@@ -65,24 +65,17 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const currentTime = ref('');
+const currentTime = ref('--:--');
 const currentDate = ref('');
-let timer: number | undefined;
 
 onMounted(() => {
-  updateDate();
-  timer = window.setInterval(updateDate, 1000);
-});
-
-onBeforeUnmount(() => {
-  if (timer) {
-    window.clearInterval(timer);
-  }
+  void loadCurrentTime();
+  void setupMvuListener();
 });
 
 function goSettings() {
@@ -93,16 +86,68 @@ function goChat() {
   router.push('/chat');
 }
 
-function updateDate() {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
+function updateDisplay(timestamp: number) {
+  const date = new Date(timestamp);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
   currentTime.value = `${hours}:${minutes}`;
 
-  const month = now.getMonth() + 1;
-  const day = now.getDate();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
   const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-  currentDate.value = `${month}月${day}日 · ${weekdays[now.getDay()]}`;
+  currentDate.value = `${month}月${day}日 · ${weekdays[date.getDay()]}`;
+}
+
+async function loadCurrentTime() {
+  if (typeof waitGlobalInitialized !== 'function') {
+    updateDisplay(Date.now());
+    return;
+  }
+
+  try {
+    await waitGlobalInitialized('Mvu');
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
+      default_value: Date.now(),
+    });
+    const timestamp =
+      typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
+    if (Number.isFinite(timestamp)) {
+      updateDisplay(timestamp);
+    } else {
+      updateDisplay(Date.now());
+    }
+  } catch (error) {
+    console.warn('[HomePage] 获取当前时间失败', error);
+    updateDisplay(Date.now());
+  }
+}
+
+async function setupMvuListener() {
+  if (typeof waitGlobalInitialized !== 'function' || typeof eventOn !== 'function') {
+    return;
+  }
+
+  try {
+    await waitGlobalInitialized('Mvu');
+
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
+      try {
+        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
+          default_value: Date.now(),
+        });
+        const timestamp =
+          typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
+        if (Number.isFinite(timestamp)) {
+          updateDisplay(timestamp);
+        }
+      } catch (error) {
+        console.warn('[HomePage] 监听当前时间失败', error);
+      }
+    });
+  } catch (error) {
+    console.warn('[HomePage] 设置当前时间监听失败', error);
+  }
 }
 </script>
 

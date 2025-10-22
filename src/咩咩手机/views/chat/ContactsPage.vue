@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
 
 interface Contact {
   id: number;
@@ -82,28 +82,7 @@ async function loadContactsFromMvu() {
       if (typeof info === 'object' && info !== null) {
         const contactInfo = info as { 昵称?: string; 签名?: string; 头像?: string };
 
-        // 处理头像
-        let avatarUrl: string | undefined;
-        if (contactInfo.头像) {
-          if (contactInfo.头像.startsWith('char')) {
-            // 使用角色卡头像
-            // 格式: "char" 或 "char:角色卡名称"
-            try {
-              const parts = contactInfo.头像.split(':');
-              const charName = parts.length > 1 ? parts[1] : 'current';
-
-              const charAvatarPath = typeof getCharAvatarPath === 'function'
-                ? getCharAvatarPath(charName, true)
-                : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
-              avatarUrl = charAvatarPath || undefined;
-            } catch (error) {
-              console.warn(`[ContactsPage] 获取角色卡头像失败:`, error);
-            }
-          } else {
-            // 使用网络 URL
-            avatarUrl = contactInfo.头像;
-          }
-        }
+        const avatarUrl = resolveAvatar(contactInfo.头像);
 
         contactsList.push({
           id: idCounter++,
@@ -142,24 +121,7 @@ async function setupMvuListener() {
           if (typeof info === 'object' && info !== null) {
             const contactInfo = info as { 昵称?: string; 签名?: string; 头像?: string };
 
-            // 处理头像
-            let avatarUrl: string | undefined;
-            if (contactInfo.头像) {
-              if (contactInfo.头像 === 'char') {
-                // 使用当前角色卡头像
-                try {
-                  const charAvatarPath = typeof getCharAvatarPath === 'function'
-                    ? getCharAvatarPath('current', true)
-                    : (window as any).TavernHelper?.getCharAvatarPath?.('current', true);
-                  avatarUrl = charAvatarPath || undefined;
-                } catch (error) {
-                  console.warn(`[ContactsPage] 获取当前角色卡头像失败:`, error);
-                }
-              } else {
-                // 使用网络 URL
-                avatarUrl = contactInfo.头像;
-              }
-            }
+            const avatarUrl = resolveAvatar(contactInfo.头像);
 
             contactsList.push({
               id: idCounter++,

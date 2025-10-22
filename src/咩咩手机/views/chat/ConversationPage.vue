@@ -80,7 +80,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
 
 interface ConversationMessage {
   id: number;
@@ -106,6 +106,7 @@ const route = useRoute();
 const mvuInitialized = ref(false);
 const loadError = ref<string | null>(null);
 const conversationData = ref<ConversationDetail | undefined>(undefined);
+const currentTime = ref<number>(Date.now());
 
 // 从 MVU 变量加载聊天记录
 async function loadConversationFromMvu(contactName: string) {
@@ -116,6 +117,13 @@ async function loadConversationFromMvu(contactName: string) {
 
     // 从聊天变量中获取 MVU 数据
     const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
+      default_value: Date.now(),
+    });
+    const parsedTime =
+      typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
+    currentTime.value = Number.isFinite(parsedTime) ? parsedTime : Date.now();
+
     const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
       default_value: {},
     });
@@ -135,24 +143,7 @@ async function loadConversationFromMvu(contactName: string) {
       聊天记录?: Record<string, { is_user: boolean; message: string }>;
     };
 
-    // 处理头像
-    let avatarUrl: string | undefined;
-    if (contact.头像) {
-      if (contact.头像.startsWith('char')) {
-        try {
-          const parts = contact.头像.split(':');
-          const charName = parts.length > 1 ? parts[1] : 'current';
-          const charAvatarPath = typeof getCharAvatarPath === 'function'
-            ? getCharAvatarPath(charName, true)
-            : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
-          avatarUrl = charAvatarPath || undefined;
-        } catch (error) {
-          console.warn(`[ConversationPage] 获取角色卡头像失败:`, error);
-        }
-      } else {
-        avatarUrl = contact.头像;
-      }
-    }
+    const avatarUrl = resolveAvatar(contact.头像);
 
     // 转换聊天记录
     const messages: ConversationMessage[] = [];
@@ -196,9 +187,51 @@ async function loadConversationFromMvu(contactName: string) {
 // 格式化时间戳
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
+  const now = new Date(currentTime.value);
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+  const timeString = `${hours}:${minutes}`;
+
+  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
+
+  if (dayDiff === 0) {
+    return `${getTimePeriodLabel(date)} ${timeString}`;
+  }
+
+  if (dayDiff === 1) {
+    return `昨天 ${timeString}`;
+  }
+
+  if (dayDiff > 1 && dayDiff < 7) {
+    if (dayDiff === 2) {
+      return `前天 ${timeString}`;
+    }
+    return `${dayDiff}天前 ${timeString}`;
+  }
+
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}/${month}/${day} ${timeString}`;
+}
+
+function getTimePeriodLabel(date: Date): string {
+  const hour = date.getHours();
+  if (hour < 6) {
+    return '凌晨';
+  }
+  if (hour < 11) {
+    return '上午';
+  }
+  if (hour < 13) {
+    return '中午';
+  }
+  if (hour < 18) {
+    return '下午';
+  }
+  return '晚上';
 }
 
 // 监听 MVU 变量更新
@@ -210,6 +243,13 @@ async function setupMvuListener() {
       try {
         const contactName = route.params.id as string;
         if (!contactName) return;
+
+        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
+          default_value: Date.now(),
+        });
+        const parsedTime =
+          typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
+        currentTime.value = Number.isFinite(parsedTime) ? parsedTime : Date.now();
 
         const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
           default_value: {},
@@ -228,24 +268,7 @@ async function setupMvuListener() {
           聊天记录?: Record<string, { is_user: boolean; message: string }>;
         };
 
-        // 处理头像
-        let avatarUrl: string | undefined;
-        if (contact.头像) {
-          if (contact.头像.startsWith('char')) {
-            try {
-              const parts = contact.头像.split(':');
-              const charName = parts.length > 1 ? parts[1] : 'current';
-              const charAvatarPath = typeof getCharAvatarPath === 'function'
-                ? getCharAvatarPath(charName, true)
-                : (window as any).TavernHelper?.getCharAvatarPath?.(charName, true);
-              avatarUrl = charAvatarPath || undefined;
-            } catch (error) {
-              console.warn(`[ConversationPage] 获取角色卡头像失败:`, error);
-            }
-          } else {
-            avatarUrl = contact.头像;
-          }
-        }
+        const avatarUrl = resolveAvatar(contact.头像);
 
         // 转换聊天记录
         const messages: ConversationMessage[] = [];

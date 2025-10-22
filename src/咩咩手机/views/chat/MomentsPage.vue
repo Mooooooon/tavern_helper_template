@@ -18,7 +18,7 @@
       <article v-for="moment in moments" :key="moment.id" class="moment-card">
         <header class="moment-card-header">
           <div class="moment-user">
-            <img :src="getAvatarSrc(moment.avatar, moment.id, 42)" alt="" class="moment-avatar">
+            <img :src="getAvatarSrc(moment.avatar, moment.contactName, 42)" alt="" class="moment-avatar">
             <div class="moment-user-info">
               <span class="moment-name">{{ moment.name }}</span>
             </div>
@@ -47,60 +47,234 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
+import { onMounted, ref } from 'vue';
+import { getAvatarSrc, resolveAvatar as resolveAvatarSource } from '../../utils/avatarPlaceholder';
 
 interface MomentComment {
-  id: number;
+  id: string;
   author: string;
   content: string;
 }
 
 interface MomentItem {
-  id: number;
+  id: string;
+  contactName: string;
   name: string;
   content: string;
   timestamp: string;
-  likes: number;
+  timeValue: number;
   comments: MomentComment[];
   avatar?: string;
 }
 
-const moments = ref<MomentItem[]>([
-  {
-    id: 1,
-    name: '喵喵',
-    content: '今天的云彩像棉花糖一样软软的，想分给你一朵～',
-    timestamp: '5分钟前',
-    likes: 36,
-    comments: [
-      { id: 1, author: '小狐狸', content: '分我一朵！' },
-      { id: 2, author: '月影', content: '看完心情都变甜了。' },
-    ],
-  },
-  {
-    id: 2,
-    name: '阿狸',
-    content: '新上线的副本太刺激啦！集合开荒队伍，今晚继续冲💪',
-    timestamp: '1小时前',
-    likes: 58,
-    comments: [
-      { id: 1, author: '骑士团长', content: '随时待命！' },
-      { id: 2, author: '纸风车', content: '昨晚差一点点就过了。' },
-    ],
-  },
-  {
-    id: 3,
-    name: '星云工作室',
-    content: '我们发布了全新的视觉指南，欢迎来围观并留下你的灵感。',
-    timestamp: '昨天',
-    likes: 102,
-    comments: [
-      { id: 1, author: '色块', content: '太酷了，已经收藏！' },
-      { id: 2, author: '点点', content: '期待更多配色案例~' },
-    ],
-  },
-]);
+const moments = ref<MomentItem[]>([]);
+const currentTime = ref<number>(Date.now());
+const mvuInitialized = ref(false);
+const loadError = ref<string | null>(null);
+
+function normalizeTimestamp(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function formatMomentTimestamp(timestamp: number): string {
+  const nowMs = currentTime.value;
+  const now = new Date(nowMs);
+  const date = new Date(timestamp);
+  const diff = nowMs - timestamp;
+  const pad = (num: number) => num.toString().padStart(2, '0');
+  const timeText = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+  if (diff < 0) {
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
+  }
+
+  if (diff < 60 * 1000) {
+    return '刚刚';
+  }
+
+  if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000));
+    return `${minutes}分钟前`;
+  }
+
+  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
+
+  if (dayDiff === 0) {
+    return `今天 ${timeText}`;
+  }
+
+  if (dayDiff === 1) {
+    return `昨天 ${timeText}`;
+  }
+
+  if (dayDiff === 2) {
+    return `前天 ${timeText}`;
+  }
+
+  if (dayDiff > 2 && dayDiff < 7) {
+    return `${dayDiff}天前 ${timeText}`;
+  }
+
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
+}
+
+function buildMomentsFromContacts(contactsData: Record<string, unknown>): MomentItem[] {
+  const items: MomentItem[] = [];
+
+  for (const [contactName, info] of Object.entries(contactsData)) {
+    if (!info || typeof info !== 'object') {
+      continue;
+    }
+
+    const contact = info as {
+      昵称?: string;
+      头像?: string;
+      空间动态?: unknown;
+    };
+
+    const avatarUrl = resolveAvatarSource(contact.头像);
+    const dynamics = Array.isArray(contact.空间动态) ? contact.空间动态 : [];
+
+    dynamics.forEach((dynamicItem, index) => {
+      if (!dynamicItem || typeof dynamicItem !== 'object') {
+        return;
+      }
+
+      const momentData = dynamicItem as {
+        时间?: number | string;
+        内容?: string;
+        评论列表?: unknown;
+      };
+
+      const timestamp = normalizeTimestamp(momentData.时间);
+      const content = typeof momentData.内容 === 'string' ? momentData.内容 : '';
+
+      if (!timestamp || !content) {
+        return;
+      }
+
+      const commentsSource = Array.isArray(momentData.评论列表) ? momentData.评论列表 : [];
+      const comments: MomentComment[] = commentsSource
+        .map((commentItem, commentIndex) => {
+          if (!commentItem || typeof commentItem !== 'object') {
+            return null;
+          }
+
+          const comment = commentItem as { ID?: string; 发言内容?: string };
+          const author =
+            typeof comment.ID === 'string' && comment.ID.trim().length > 0
+              ? comment.ID
+              : `访客${commentIndex + 1}`;
+          const commentContent =
+            typeof comment.发言内容 === 'string' ? comment.发言内容.trim() : '';
+
+          if (!commentContent) {
+            return null;
+          }
+
+          return {
+            id: `${contactName}-${timestamp}-${commentIndex}`,
+            author,
+            content: commentContent,
+          };
+        })
+        .filter((item): item is MomentComment => Boolean(item));
+
+      items.push({
+        id: `${contactName}-${timestamp}-${index}`,
+        contactName,
+        name: contact.昵称 || contactName,
+        content,
+        timestamp: formatMomentTimestamp(timestamp),
+        timeValue: timestamp,
+        comments,
+        avatar: avatarUrl,
+      });
+    });
+  }
+
+  return items.sort((a, b) => b.timeValue - a.timeValue);
+}
+
+async function loadMomentsFromMvu() {
+  try {
+    await waitGlobalInitialized('Mvu');
+    mvuInitialized.value = true;
+
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
+      default_value: Date.now(),
+    });
+    const parsedTime =
+      typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
+    currentTime.value = Number.isFinite(parsedTime) ? parsedTime : Date.now();
+
+    const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
+      default_value: {},
+    });
+
+    if (contactsData && typeof contactsData === 'object') {
+      moments.value = buildMomentsFromContacts(contactsData as Record<string, unknown>);
+      loadError.value = null;
+    } else {
+      moments.value = [];
+      loadError.value = null;
+    }
+  } catch (error) {
+    console.error('加载动态失败:', error);
+    loadError.value = '动态加载失败';
+    moments.value = [];
+  }
+}
+
+async function setupMvuListener() {
+  try {
+    await waitGlobalInitialized('Mvu');
+
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
+      try {
+        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
+          default_value: Date.now(),
+        });
+        const parsedTime =
+          typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
+        currentTime.value = Number.isFinite(parsedTime) ? parsedTime : Date.now();
+
+        const contactsData = Mvu.getMvuVariable(variables, '手机数据.联系人', {
+          default_value: {},
+        });
+
+        if (contactsData && typeof contactsData === 'object') {
+          moments.value = buildMomentsFromContacts(contactsData as Record<string, unknown>);
+        } else {
+          moments.value = [];
+        }
+      } catch (error) {
+        console.error('更新动态失败:', error);
+      }
+    });
+  } catch (error) {
+    console.error('设置动态监听失败:', error);
+  }
+}
+
+onMounted(() => {
+  loadMomentsFromMvu();
+  setupMvuListener();
+});
 </script>
 
 <style scoped>
