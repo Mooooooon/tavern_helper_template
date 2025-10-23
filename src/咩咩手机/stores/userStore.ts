@@ -58,6 +58,29 @@ function resolveAvatar(source?: string): string | undefined {
 
 declare const triggerSlash: (command: string) => Promise<string>;
 
+// 头像缓存
+const avatarCache = new Map<string, HTMLImageElement>();
+
+// 预加载头像函数
+function preloadAvatar(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (avatarCache.has(src)) {
+      resolve();
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      avatarCache.set(src, img);
+      resolve();
+    };
+    img.onerror = () => {
+      reject(new Error(`Failed to load avatar: ${src}`));
+    };
+    img.src = src;
+  });
+}
+
 export const useUserStore = defineStore('userStore', {
   state: () => ({
     initialized: true, // 默认为true，避免阻塞显示
@@ -118,22 +141,34 @@ export const useUserStore = defineStore('userStore', {
       }
 
       try {
+        let avatarSrc: string | undefined;
+
         if (typeof triggerSlash === 'function') {
           const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
           const resolved = resolveAvatar(avatarPath);
           if (resolved && resolved !== 'undefined') {
-            this.userAvatar = resolved;
-            return;
-          }
-          if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
-            this.userAvatar = avatarPath;
-            return;
+            avatarSrc = resolved;
+          } else if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
+            avatarSrc = avatarPath;
           }
         }
 
-        const helperAvatar = resolveAvatar('char');
-        if (helperAvatar) {
-          this.userAvatar = helperAvatar;
+        if (!avatarSrc) {
+          const helperAvatar = resolveAvatar('char');
+          if (helperAvatar) {
+            avatarSrc = helperAvatar;
+          }
+        }
+
+        if (avatarSrc && avatarSrc !== this.userAvatar) {
+          // 预加载新头像
+          try {
+            await preloadAvatar(avatarSrc);
+            this.userAvatar = avatarSrc;
+          } catch (preloadError) {
+            console.warn('[userStore] 头像预加载失败，但仍然设置头像路径', preloadError);
+            this.userAvatar = avatarSrc;
+          }
         }
       } catch (error) {
         console.warn('[userStore] 获取用户头像失败', error);

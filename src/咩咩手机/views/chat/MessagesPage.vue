@@ -10,7 +10,12 @@
         @click="openConversation(message.contactName)"
       >
         <div class="avatar-wrapper">
-          <img :src="message.avatar || ''" alt="avatar">
+          <CachedAvatar
+            :src="message.avatar || ''"
+            alt="avatar"
+            class-name=""
+            fallback-src=""
+          />
           <span v-if="message.unread" class="badge">{{ message.unread }}</span>
         </div>
         <div class="message-details">
@@ -41,6 +46,7 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
+import CachedAvatar from '../../components/CachedAvatar.vue';
 
 interface DisplayMessage {
   contactName: string;

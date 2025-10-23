@@ -21,7 +21,12 @@
       </template>
       <template v-else-if="initialized">
         <div class="profile">
-          <img :src="userInfo.avatar" alt="Avatar" class="avatar">
+          <CachedAvatar
+            :src="userInfo.avatar"
+            alt="Avatar"
+            class-name="avatar"
+            fallback-src=""
+          />
           <div class="profile-info">
             <span class="profile-name">{{ userInfo.name }}</span>
             <span class="profile-status">
@@ -84,6 +89,7 @@ import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
 import { useUserStore } from '../../stores/userStore';
+import CachedAvatar from '../../components/CachedAvatar.vue';
 
 // 定义props和emits
 const props = defineProps<{

@@ -81,6 +81,51 @@ function destroyScriptIdDiv(): void {
   }
 }
 
+// 头像预加载函数
+async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> {
+  const avatarUrls = new Set<string>();
+
+  // 添加用户头像
+  if (userStore.userInfo?.avatar) {
+    avatarUrls.add(userStore.userInfo.avatar);
+  }
+
+  // 添加所有联系人的头像
+  if (chatStore.messageSummaries) {
+    chatStore.messageSummaries.forEach((summary: any) => {
+      if (summary.avatar) {
+        avatarUrls.add(summary.avatar);
+      }
+    });
+  }
+
+  // 如果还有联系人列表，也添加
+  if (chatStore.contactList) {
+    Object.values(chatStore.contactList).forEach((contact: any) => {
+      if (contact.avatar) {
+        avatarUrls.add(contact.avatar);
+      }
+    });
+  }
+
+  // 并行预加载所有头像
+  const preloadPromises = Array.from(avatarUrls).map(url => {
+    return new Promise<void>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve();
+      img.onerror = () => resolve(); // 即使失败也继续
+      img.src = url;
+    });
+  });
+
+  try {
+    await Promise.all(preloadPromises);
+    console.log(`[preloadAllAvatars] 预加载了 ${avatarUrls.size} 个头像`);
+  } catch (error) {
+    console.warn('[preloadAllAvatars] 部分头像预加载失败:', error);
+  }
+}
+
 // 样式传送函数
 function teleportStyle(target: ShadowRoot) {
   try {
@@ -239,12 +284,15 @@ async function initPhoneUI(): Promise<void> {
     // 异步初始化全局用户信息，不阻塞挂载
     const { useUserStore } = await import('./stores/userStore');
     const userStore = useUserStore();
-    void userStore.ensureInitialized();
+    await userStore.ensureInitialized();
 
     // 也初始化chatStore，确保它在Vue应用上下文中被创建
     const { useChatStore } = await import('./stores/chatStore');
     const chatStore = useChatStore();
-    void chatStore.ensureInitialized();
+    await chatStore.ensureInitialized();
+
+    // 预加载所有头像
+    await preloadAllAvatars(userStore, chatStore);
 
     console.log('Vue应用已挂载');
 
