@@ -81,13 +81,32 @@ function destroyScriptIdDiv(): void {
   }
 }
 
-// 头像预加载函数
+// 全局头像缓存接口
+declare global {
+  interface Window {
+    __phoneAvatarCache?: Map<string, boolean>;
+  }
+}
+
+// 获取或创建全局缓存
+function getGlobalAvatarCache(): Map<string, boolean> {
+  if (!window.__phoneAvatarCache) {
+    window.__phoneAvatarCache = new Map();
+    console.log('[preloadAllAvatars] 创建新的全局头像缓存');
+  } else {
+    console.log(`[preloadAllAvatars] 复用现有缓存，当前有 ${window.__phoneAvatarCache.size} 个头像`);
+  }
+  return window.__phoneAvatarCache;
+}
+
+// 全局头像预加载函数 - 简化版本
 async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> {
   const avatarUrls = new Set<string>();
 
-  // 添加用户头像
+  // 添加用户头像（如果存在）
   if (userStore.userInfo?.avatar) {
     avatarUrls.add(userStore.userInfo.avatar);
+    console.log('[preloadAllAvatars] 添加用户头像:', userStore.userInfo.avatar);
   }
 
   // 添加所有联系人的头像
@@ -108,19 +127,35 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
     });
   }
 
-  // 并行预加载所有头像
+  const cache = getGlobalAvatarCache();
+
+  // 并行预加载所有头像，使用全局缓存
   const preloadPromises = Array.from(avatarUrls).map(url => {
+    // 如果已经缓存，跳过
+    if (cache.has(url)) {
+      console.log(`[preloadAllAvatars] 头像已在缓存中，跳过: ${url}`);
+      return Promise.resolve();
+    }
+
+    // 创建新的加载Promise
     return new Promise<void>((resolve) => {
       const img = new Image();
-      img.onload = () => resolve();
-      img.onerror = () => resolve(); // 即使失败也继续
+      img.onload = () => {
+        cache.set(url, true);
+        console.log(`[preloadAllAvatars] 成功预加载并缓存头像: ${url}`);
+        resolve();
+      };
+      img.onerror = () => {
+        console.warn(`[preloadAllAvatars] 头像预加载失败: ${url}`);
+        resolve(); // 即使失败也继续
+      };
       img.src = url;
     });
   });
 
   try {
     await Promise.all(preloadPromises);
-    console.log(`[preloadAllAvatars] 预加载了 ${avatarUrls.size} 个头像`);
+    console.log(`[preloadAllAvatars] 预加载完成，共处理 ${avatarUrls.size} 个头像`);
   } catch (error) {
     console.warn('[preloadAllAvatars] 部分头像预加载失败:', error);
   }
@@ -284,17 +319,33 @@ async function initPhoneUI(): Promise<void> {
     // 异步初始化全局用户信息，不阻塞挂载
     const { useUserStore } = await import('./stores/userStore');
     const userStore = useUserStore();
-    await userStore.ensureInitialized();
+
+    // 确保用户信息已经加载完成，特别是头像
+    if (!userStore.userAvatar) {
+      await userStore.ensureInitialized();
+      // 额外等待一下确保头像加载完成
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
 
     // 也初始化chatStore，确保它在Vue应用上下文中被创建
     const { useChatStore } = await import('./stores/chatStore');
     const chatStore = useChatStore();
     await chatStore.ensureInitialized();
 
-    // 预加载所有头像
+    // 检查当前缓存状态
+    const existingCache = getGlobalAvatarCache();
+    console.log(`[initPhoneUI] 检查现有缓存: ${existingCache.size} 个头像`);
+
+  // 预加载所有头像
     await preloadAllAvatars(userStore, chatStore);
 
     console.log('Vue应用已挂载');
+
+    // 调试：输出最终缓存状态
+    console.log(`[initPhoneUI] 初始化完成，全局缓存中有 ${existingCache.size} 个头像:`);
+    existingCache.forEach((_, key) => {
+      console.log(`  - ${key}`);
+    });
 
     isPhoneVisible = true;
     toastr.success('手机UI已打开');
@@ -340,6 +391,11 @@ function destroyPhoneUI() {
 
   console.log('开始销毁手机UI');
 
+  // 保护缓存 - 在销毁前记录缓存状态
+  const cacheBeforeDestroy = window.__phoneAvatarCache;
+  const cacheSize = cacheBeforeDestroy?.size || 0;
+  console.log(`[destroyPhoneUI] 销毁前缓存状态: ${cacheSize} 个头像`);
+
   try {
     if (vueApp) {
       vueApp.unmount();
@@ -349,6 +405,14 @@ function destroyPhoneUI() {
     // 移除样式和容器
     deteleportStyle();
     destroyScriptIdDiv();
+
+    // 确保缓存没有被清理
+    if (cacheBeforeDestroy && window.__phoneAvatarCache !== cacheBeforeDestroy) {
+      console.warn('[destroyPhoneUI] 缓存被意外重置，恢复缓存');
+      window.__phoneAvatarCache = cacheBeforeDestroy;
+    }
+
+    console.log(`[destroyPhoneUI] 销毁完成，缓存保持: ${window.__phoneAvatarCache?.size || 0} 个头像`);
 
     isPhoneVisible = false;
     toastr.info('手机UI已关闭');
@@ -374,9 +438,43 @@ function togglePhoneUI() {
   void initPhoneUI();
 }
 
+// 初始化全局缓存
+function initGlobalCache(): void {
+  if (!window.__phoneAvatarCache) {
+    window.__phoneAvatarCache = new Map();
+    console.log('[initGlobalCache] 创建全局头像缓存');
+  } else {
+    console.log(`[initGlobalCache] 全局缓存已存在，包含 ${window.__phoneAvatarCache.size} 个头像`);
+  }
+}
+
+// 调试函数：手动清理缓存（仅用于调试）
+function clearAvatarCache(): void {
+  if (window.__phoneAvatarCache) {
+    const size = window.__phoneAvatarCache.size;
+    window.__phoneAvatarCache.clear();
+    console.log(`[clearAvatarCache] 手动清理了 ${size} 个头像缓存`);
+  }
+}
+
+// 调试函数：显示缓存状态
+function showCacheStatus(): void {
+  if (window.__phoneAvatarCache) {
+    console.log(`[showCacheStatus] 当前缓存状态: ${window.__phoneAvatarCache.size} 个头像`);
+    window.__phoneAvatarCache.forEach((_, url) => {
+      console.log(`  - ${url}`);
+    });
+  } else {
+    console.log('[showCacheStatus] 缓存不存在');
+  }
+}
+
 // 加载时注册事件
 $(() => {
   console.log('脚本加载完成，开始注册按钮');
+
+  // 立即初始化全局缓存
+  initGlobalCache();
 
   // 注册按钮
   replaceScriptButtons([{ name: '召唤手机', visible: true }]);
@@ -390,6 +488,14 @@ $(() => {
   console.log('按钮事件已绑定');
 
   toastr.success('咩咩手机脚本已加载');
+
+  // 暴露调试函数到全局
+  (window as any).__phoneDebug = {
+    clearCache: clearAvatarCache,
+    showCache: showCacheStatus,
+    initCache: initGlobalCache
+  };
+  console.log('[init] 调试函数已暴露到 window.__phoneDebug');
 });
 
 // 卸载时清理

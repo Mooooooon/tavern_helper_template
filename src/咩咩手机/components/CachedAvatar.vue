@@ -27,23 +27,46 @@ const props = withDefaults(defineProps<Props>(), {
 const displaySrc = ref(props.src || '');
 const isLoading = ref(false);
 
-// 头像缓存
-const avatarCache = new Map<string, string>();
+// 全局头像缓存 - 简化版本
+declare global {
+  interface Window {
+    __phoneAvatarCache?: Map<string, boolean>;
+  }
+}
 
-// 预加载头像
-async function preloadAvatar(src: string): Promise<string> {
-  if (avatarCache.has(src)) {
-    return avatarCache.get(src)!;
+// 获取或创建全局缓存
+function getGlobalCache(): Map<string, boolean> {
+  if (!window.__phoneAvatarCache) {
+    window.__phoneAvatarCache = new Map();
+    console.log('[CachedAvatar] 创建新的全局头像缓存');
+  } else {
+    console.log(`[CachedAvatar] 复用现有缓存，当前有 ${window.__phoneAvatarCache.size} 个头像`);
+  }
+  return window.__phoneAvatarCache;
+}
+
+// 预加载头像 - 简化版本
+async function preloadAvatar(src: string): Promise<void> {
+  const cache = getGlobalCache();
+
+  // 如果已经缓存，直接返回
+  if (cache.has(src)) {
+    console.log(`[CachedAvatar] 使用缓存头像: ${src}`);
+    return;
   }
 
-  return new Promise((resolve, reject) => {
+  console.log(`[CachedAvatar] 开始加载头像: ${src}`);
+
+  return new Promise<void>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      avatarCache.set(src, src);
-      resolve(src);
+      cache.set(src, true);
+      console.log(`[CachedAvatar] 头像加载成功并缓存: ${src}`);
+      resolve();
     };
     img.onerror = () => {
-      reject(new Error(`Failed to load avatar: ${src}`));
+      console.warn(`[CachedAvatar] 头像加载失败: ${src}`);
+      resolve(); // 即使失败也继续，不阻塞
     };
     img.src = src;
   });
@@ -66,35 +89,19 @@ function handleLoad() {
 watch(() => props.src, async (newSrc) => {
   if (newSrc && newSrc !== displaySrc.value) {
     isLoading.value = true;
-    try {
-      const cachedSrc = await preloadAvatar(newSrc);
-      displaySrc.value = cachedSrc;
-    } catch (error) {
-      console.warn('[CachedAvatar] 头像加载失败:', error);
-      if (props.fallbackSrc) {
-        displaySrc.value = props.fallbackSrc;
-      } else {
-        displaySrc.value = newSrc;
-      }
-      isLoading.value = false;
-    }
+    displaySrc.value = newSrc; // 立即设置src，让浏览器开始加载
+    await preloadAvatar(newSrc);
+    isLoading.value = false;
   }
 }, { immediate: true });
 
 onMounted(async () => {
   if (props.src) {
+    console.log(`[CachedAvatar] 组件挂载，处理头像: ${props.src}`);
     isLoading.value = true;
-    try {
-      await preloadAvatar(props.src);
-      displaySrc.value = props.src;
-    } catch (error) {
-      console.warn('[CachedAvatar] 初始头像加载失败:', error);
-      if (props.fallbackSrc) {
-        displaySrc.value = props.fallbackSrc;
-      }
-    } finally {
-      isLoading.value = false;
-    }
+    displaySrc.value = props.src; // 立即设置src，让浏览器开始加载
+    await preloadAvatar(props.src);
+    isLoading.value = false;
   }
 });
 </script>
