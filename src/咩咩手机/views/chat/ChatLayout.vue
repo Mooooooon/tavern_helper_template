@@ -19,7 +19,7 @@
           </svg>
         </button>
       </template>
-      <template v-else>
+      <template v-else-if="initialized">
         <div class="profile">
           <img :src="ownerAvatar" alt="Avatar" class="avatar">
           <div class="profile-info">
@@ -45,9 +45,9 @@
       </template>
     </header>
     <main class="chat-content" :class="{ 'chat-content--conversation': !!activeConversation }">
-      <router-view></router-view>
+      <router-view v-if="initialized"></router-view>
     </main>
-    <footer v-if="!activeConversation" class="chat-footer">
+    <footer v-if="!activeConversation && initialized" class="chat-footer">
       <nav>
         <router-link
           to="/chat/messages"
@@ -89,6 +89,7 @@ const ownerName = ref('咩咩助手');
 const ownerStatus = '在线';
 const defaultOwnerAvatar = getAvatarSrc(undefined, 'owner', 40);
 const ownerAvatar = ref(defaultOwnerAvatar);
+const initialized = ref(false);
 
 const route = useRoute();
 const router = useRouter();
@@ -174,8 +175,9 @@ async function loadOwnerAvatar() {
   }
 }
 
-onMounted(() => {
-  void chatStore.ensureInitialized();
+onMounted(async () => {
+  await chatStore.ensureInitialized();
+  initialized.value = true;
   void loadOwnerName();
   void loadOwnerAvatar();
 });

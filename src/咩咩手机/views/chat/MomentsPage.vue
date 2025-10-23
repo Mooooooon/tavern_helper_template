@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { useChatStore } from '../../stores/chatStore';
@@ -71,10 +71,6 @@ interface MomentItem {
 
 const chatStore = useChatStore();
 const { momentSummaries, currentTime } = storeToRefs(chatStore);
-
-onMounted(() => {
-  void chatStore.ensureInitialized();
-});
 
 function formatMomentTimestamp(timestamp: number, nowMs: number): string {
   const now = new Date(nowMs);

@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { getAvatarSrc } from '../../utils/avatarPlaceholder';
@@ -98,10 +98,6 @@ const route = useRoute();
 
 const chatStore = useChatStore();
 const { currentTime } = storeToRefs(chatStore);
-
-onMounted(() => {
-  void chatStore.ensureInitialized();
-});
 
 function getTimePeriodLabel(date: Date): string {
   const hour = date.getHours();
