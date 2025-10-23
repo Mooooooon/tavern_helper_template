@@ -10,7 +10,7 @@
         @click="openConversation(message.contactName)"
       >
         <div class="avatar-wrapper">
-          <img :src="getAvatarSrc(message.avatar, message.contactName, 48)" alt="avatar">
+          <img :src="message.avatar || ''" alt="avatar">
           <span v-if="message.unread" class="badge">{{ message.unread }}</span>
         </div>
         <div class="message-details">
@@ -41,7 +41,6 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { useChatStore } from '../../stores/chatStore';
 
 interface DisplayMessage {
@@ -57,7 +56,8 @@ interface DisplayMessage {
 
 const router = useRouter();
 const chatStore = useChatStore();
-const { messageSummaries, currentTime } = storeToRefs(chatStore);
+const { messageSummaries, currentTime, contactList, contactOrder } = storeToRefs(chatStore);
+
 
 function formatTimestamp(timestamp: number, nowMs: number): string {
   const date = new Date(timestamp);

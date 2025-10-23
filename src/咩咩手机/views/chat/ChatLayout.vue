@@ -21,12 +21,12 @@
       </template>
       <template v-else-if="initialized">
         <div class="profile">
-          <img :src="ownerAvatar" alt="Avatar" class="avatar">
+          <img :src="userInfo.avatar" alt="Avatar" class="avatar">
           <div class="profile-info">
-            <span class="profile-name">{{ ownerName }}</span>
+            <span class="profile-name">{{ userInfo.name }}</span>
             <span class="profile-status">
               <span class="status-dot" aria-hidden="true"></span>
-              {{ ownerStatus }}
+              {{ userInfo.status }}
             </span>
           </div>
         </div>
@@ -45,7 +45,7 @@
       </template>
     </header>
     <main class="chat-content" :class="{ 'chat-content--conversation': !!activeConversation }">
-      <router-view v-if="initialized"></router-view>
+      <router-view></router-view>
     </main>
     <footer v-if="!activeConversation && initialized" class="chat-footer">
       <nav>
@@ -80,20 +80,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getAvatarSrc, resolveAvatar } from '../../utils/avatarPlaceholder';
+import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
-
-const ownerName = ref('咩咩助手');
-const ownerStatus = '在线';
-const defaultOwnerAvatar = getAvatarSrc(undefined, 'owner', 40);
-const ownerAvatar = ref(defaultOwnerAvatar);
-const initialized = ref(false);
+import { useUserStore } from '../../stores/userStore';
 
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
+const userStore = useUserStore();
+
+const { userInfo } = storeToRefs(userStore);
+const initialized = ref(true); // 临时设为true，不阻塞显示
 
 const isMessagesActive = computed(() => {
   if (route.name === 'chat-messages') {
@@ -124,62 +123,14 @@ function goBack() {
   router.push({ name: 'chat-messages' });
 }
 
-async function loadOwnerName() {
-  if (typeof window === 'undefined') {
-    return;
+onMounted(() => {
+  // 确保stores已经初始化（应该在全局已经初始化过了）
+  if (!chatStore.initialized) {
+    void chatStore.ensureInitialized();
   }
-
-  try {
-    if (typeof triggerSlash === 'function') {
-      const userName = await triggerSlash('/pass {{user}}');
-      if (userName && userName !== 'undefined') {
-        ownerName.value = userName;
-        return;
-      }
-    }
-
-    const helperUserName = await window.TavernHelper?.triggerSlash?.('/pass {{user}}');
-    if (helperUserName && helperUserName !== 'undefined') {
-      ownerName.value = helperUserName;
-    }
-  } catch (error) {
-    console.warn('[ChatLayout] 获取用户名失败', error);
+  if (!userStore.initialized) {
+    void userStore.ensureInitialized();
   }
-}
-
-async function loadOwnerAvatar() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    if (typeof triggerSlash === 'function') {
-      const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
-      const resolved = resolveAvatar(avatarPath);
-      if (resolved && resolved !== 'undefined') {
-        ownerAvatar.value = resolved;
-        return;
-      }
-      if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
-        ownerAvatar.value = avatarPath;
-        return;
-      }
-    }
-
-    const helperAvatar = resolveAvatar('char');
-    if (helperAvatar) {
-      ownerAvatar.value = helperAvatar;
-    }
-  } catch (error) {
-    console.warn('[ChatLayout] 获取用户头像失败', error);
-  }
-}
-
-onMounted(async () => {
-  await chatStore.ensureInitialized();
-  initialized.value = true;
-  void loadOwnerName();
-  void loadOwnerAvatar();
 });
 </script>
 

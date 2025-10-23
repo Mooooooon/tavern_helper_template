@@ -207,7 +207,21 @@ async function initPhoneUI(): Promise<void> {
     vueApp = createApp(phoneAppComponent);
     vueApp.use(pinia);
     vueApp.use(phoneRouter);
+
     vueApp.mount(shadowAppContainer);
+
+    // 等待下一个tick，确保Vue应用完全挂载后再初始化stores
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // 异步初始化全局用户信息，不阻塞挂载
+    const { useUserStore } = await import('./stores/userStore');
+    const userStore = useUserStore();
+    void userStore.ensureInitialized();
+
+    // 也初始化chatStore，确保它在Vue应用上下文中被创建
+    const { useChatStore } = await import('./stores/chatStore');
+    const chatStore = useChatStore();
+    void chatStore.ensureInitialized();
 
     console.log('Vue应用已挂载');
 

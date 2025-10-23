@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { resolveAvatar } from '../utils/avatarPlaceholder';
 
 type ChatLogEntry = {
   is_user?: boolean;
@@ -86,6 +85,62 @@ type ConversationDetail = {
 
 declare const waitGlobalInitialized: (key: string) => Promise<void>;
 declare const eventOn: (event: string, handler: (...args: any[]) => void) => void;
+
+// 头像处理函数
+function getCharAvatarGetter():
+  | ((character: string, cache?: boolean) => string | undefined)
+  | undefined {
+  if (typeof getCharAvatarPath === 'function') {
+    return getCharAvatarPath;
+  }
+  const helperGetter = (globalThis as any)?.TavernHelper?.getCharAvatarPath;
+  if (typeof helperGetter === 'function') {
+    return helperGetter;
+  }
+  return undefined;
+}
+
+function toCharKey(source?: string): string | undefined {
+  if (!source) {
+    return undefined;
+  }
+  if (!source.startsWith('char')) {
+    return undefined;
+  }
+  const [, charName] = source.split(':');
+  const trimmed = charName?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : 'current';
+}
+
+function resolveAvatar(source?: string): string | undefined {
+  if (!source) {
+    return undefined;
+  }
+  if (source === 'undefined' || source === 'null') {
+    return undefined;
+  }
+
+  const charKey = toCharKey(source);
+  if (!charKey) {
+    return source;
+  }
+
+  const getter = getCharAvatarGetter();
+  if (!getter) {
+    return undefined;
+  }
+
+  try {
+    const resolved = getter(charKey, true);
+    if (resolved) {
+      return resolved;
+    }
+  } catch (error) {
+    console.warn(`[chatStore] 获取角色卡头像失败(${charKey}):`, error);
+  }
+
+  return undefined;
+}
 declare const Mvu: {
   events: {
     VARIABLE_UPDATE_ENDED: string;
@@ -319,25 +374,55 @@ export const useChatStore = defineStore('chatStore', {
       if (this.initialized) {
         return;
       }
-      await this.refreshFromMvu();
-      await this.registerListener();
-      this.initialized = true;
+
+      try {
+        await this.refreshFromMvu();
+        await this.registerListener();
+        this.initialized = true;
+      } catch (error) {
+        console.error('[chatStore] 初始化失败:', error);
+        // 即使初始化失败，也标记为已初始化，避免重复尝试
+        this.initialized = true;
+      }
     },
     async refreshFromMvu(): Promise<void> {
-      await waitGlobalInitialized('Mvu');
-      const mvuData = Mvu.getMvuData({ type: 'chat' });
-      this.applyMvuSnapshot(mvuData);
+      try {
+        // 设置超时，避免无限等待
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('MVU初始化超时')), 3000);
+        });
+
+        const mvuPromise = waitGlobalInitialized('Mvu');
+        await Promise.race([mvuPromise, timeoutPromise]);
+
+        const mvuData = Mvu.getMvuData({ type: 'chat' });
+        this.applyMvuSnapshot(mvuData);
+      } catch (error) {
+        console.warn('[chatStore] MVU初始化失败，使用默认数据:', error);
+        // 使用默认数据初始化
+        this.applyMvuSnapshot({} as Mvu.MvuData);
+      }
     },
     applyMvuSnapshot(mvuData: Mvu.MvuData): void {
-      const currentTimeValue = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
-        default_value: Date.now(),
-      });
-      this.updateCurrentTime(currentTimeValue);
+      try {
+        const currentTimeValue = typeof Mvu !== 'undefined'
+          ? Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
+              default_value: Date.now(),
+            })
+          : Date.now();
+        this.updateCurrentTime(currentTimeValue);
 
-      const contactsData = Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
-        default_value: {},
-      });
-      this.updateContacts(contactsData);
+        const contactsData = typeof Mvu !== 'undefined'
+          ? Mvu.getMvuVariable(mvuData, '手机数据.联系人', {
+              default_value: {},
+            })
+          : {};
+        this.updateContacts(contactsData);
+      } catch (error) {
+        console.warn('[chatStore] 应用MVU数据失败，使用默认值:', error);
+        this.updateCurrentTime(Date.now());
+        this.updateContacts({});
+      }
     },
     updateCurrentTime(value: unknown): void {
       const parsed = toNumber(value);
@@ -391,14 +476,26 @@ export const useChatStore = defineStore('chatStore', {
         return;
       }
 
-      await waitGlobalInitialized('Mvu');
-      eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
-        try {
-          this.applyMvuSnapshot(variables);
-        } catch (error) {
-          console.error('[chatStore] 更新 MVU 数据失败:', error);
-        }
-      });
+      try {
+        // 设置超时，避免无限等待
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('MVU监听器初始化超时')), 3000);
+        });
+
+        const mvuPromise = waitGlobalInitialized('Mvu');
+        await Promise.race([mvuPromise, timeoutPromise]);
+
+        eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
+          try {
+            this.applyMvuSnapshot(variables);
+          } catch (error) {
+            console.error('[chatStore] 更新 MVU 数据失败:', error);
+          }
+        });
+      } catch (error) {
+        console.warn('[chatStore] MVU监听器初始化失败:', error);
+      }
+
       this.listenerRegistered = true;
     },
   },

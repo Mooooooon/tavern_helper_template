@@ -18,7 +18,7 @@
       <article v-for="moment in moments" :key="moment.id" class="moment-card">
         <header class="moment-card-header">
           <div class="moment-user">
-            <img :src="getAvatarSrc(moment.avatar, moment.contactName, 42)" alt="" class="moment-avatar">
+            <img :src="moment.avatar || ''" alt="" class="moment-avatar">
             <div class="moment-user-info">
               <span class="moment-name">{{ moment.name }}</span>
             </div>
@@ -49,7 +49,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { useChatStore } from '../../stores/chatStore';
 
 interface MomentComment {

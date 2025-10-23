@@ -15,7 +15,7 @@
         >
           <div class="avatar-wrapper">
             <img
-              :src="getAvatarSrc(contact.avatar, contact.contactName, 48)"
+              :src="contact.avatar || ''"
               alt="联系人头像"
             >
           </div>
@@ -42,7 +42,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { useChatStore } from '../../stores/chatStore';
 
 interface ContactSection {

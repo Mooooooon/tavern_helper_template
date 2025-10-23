@@ -19,7 +19,7 @@
           <template v-else>
             <div v-if="item.sender === 'friend'" class="friend-message">
               <img
-                :src="getAvatarSrc(currentConversation.avatar, currentConversation.id, 36)"
+                :src="currentConversation.avatar || ''"
                 alt="联系人头像"
                 class="avatar"
               >
@@ -81,7 +81,6 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { getAvatarSrc } from '../../utils/avatarPlaceholder';
 import { useChatStore } from '../../stores/chatStore';
 
 type ConversationMessage = {
