@@ -11,7 +11,8 @@
       "mcp__browsermcp__browser_press_key",
       "mcp__browsermcp__browser_navigate",
       "mcp__browsermcp__browser_hover",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(rm:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

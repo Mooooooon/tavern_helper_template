@@ -39,7 +39,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
 
@@ -54,7 +53,11 @@ interface DisplayMessage {
   pinned?: boolean;
 }
 
-const router = useRouter();
+// 定义发射事件
+const emit = defineEmits<{
+  navigate: [page: string, params?: any]
+}>();
+
 const chatStore = useChatStore();
 const { messageSummaries, currentTime, contactList, contactOrder } = storeToRefs(chatStore);
 
@@ -118,7 +121,7 @@ const filteredMessages = computed(() =>
 );
 
 function openConversation(contactName: string) {
-  router.push({ name: 'chat-conversation', params: { id: contactName } });
+  emit('navigate', `/chat/messages/${contactName}`, { id: contactName });
 }
 </script>
 
@@ -170,26 +173,40 @@ function openConversation(contactName: string) {
   padding-bottom: 16px;
 }
 
-.message-list:hover {
-  scrollbar-width: thin;
+.message-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .message-list::-webkit-scrollbar {
   width: 0;
   height: 0;
+  background: transparent;
 }
 
 .message-list:hover::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
+  background: transparent;
 }
 
 .message-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+
+.message-list:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.35);
 }
 
 .message-list:hover::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.message-list::-webkit-scrollbar-button,
+.message-list::-webkit-scrollbar-corner {
+  display: none;
 }
 
 .avatar-wrapper {

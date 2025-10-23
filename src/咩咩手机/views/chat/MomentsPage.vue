@@ -1,7 +1,7 @@
 <template>
   <div class="moments-page">
     <header class="moments-header">
-      <button @click="$router.back()" class="header-button header-button--back" type="button" aria-label="返回">
+      <button @click="emit('navigate', 'back')" class="header-button header-button--back" type="button" aria-label="返回">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
         </svg>
@@ -67,6 +67,11 @@ interface MomentItem {
   comments: MomentComment[];
   avatar?: string;
 }
+
+// 定义发射事件
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
 
 const chatStore = useChatStore();
 const { momentSummaries, currentTime } = storeToRefs(chatStore);
@@ -316,25 +321,39 @@ const moments = computed<MomentItem[]>(() => {
   color: #9b9b9f;
 }
 
-.moments-list:hover {
-  scrollbar-width: thin;
+.moments-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .moments-list::-webkit-scrollbar {
   width: 0;
   height: 0;
+  background: transparent;
 }
 
 .moments-list:hover::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
+  background: transparent;
 }
 
 .moments-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+
+.moments-list:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.35);
 }
 
 .moments-list:hover::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.moments-list::-webkit-scrollbar-button,
+.moments-list::-webkit-scrollbar-corner {
+  display: none;
 }
 </style>

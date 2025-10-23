@@ -66,12 +66,14 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
 
 const currentTime = ref('--:--');
 const currentDate = ref('');
+
+// 定义发射事件
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
 
 onMounted(() => {
   void loadCurrentTime();
@@ -79,11 +81,11 @@ onMounted(() => {
 });
 
 function goSettings() {
-  router.push('/settings');
+  emit('navigate', '/settings');
 }
 
 function goChat() {
-  router.push('/chat');
+  emit('navigate', '/chat');
 }
 
 function updateDisplay(timestamp: number) {

@@ -1,6 +1,6 @@
 <template>
   <div class="chat-layout">
-    <header class="chat-header" :class="{ 'chat-header--conversation': !!activeConversation }">
+    <header v-if="!shouldHideHeader" class="chat-header" :class="{ 'chat-header--conversation': !!activeConversation }">
       <template v-if="activeConversation">
         <button class="header-button header-button--back" type="button" aria-label="返回聊天列表" @click="goBack">
           <svg viewBox="0 0 24 24">
@@ -45,27 +45,27 @@
       </template>
     </header>
     <main class="chat-content" :class="{ 'chat-content--conversation': !!activeConversation }">
-      <router-view></router-view>
+      <slot></slot>
     </main>
     <footer v-if="!activeConversation && initialized" class="chat-footer">
       <nav>
-        <router-link
-          to="/chat/messages"
+        <button
           class="nav-item"
           :class="{ 'nav-item--active': isMessagesActive }"
+          @click="emit('navigate', '/chat/messages')"
         >
           <svg viewBox="0 0 24 24" class="nav-icon">
             <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
           </svg>
           <span>消息</span>
-        </router-link>
-        <router-link to="/chat/contacts" class="nav-item">
+        </button>
+        <button class="nav-item" @click="emit('navigate', '/chat/contacts')">
           <svg viewBox="0 0 24 24" class="nav-icon">
             <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
           </svg>
           <span>联系人</span>
-        </router-link>
-        <router-link to="/chat/moments" class="nav-item">
+        </button>
+        <button class="nav-item" @click="emit('navigate', '/chat/moments')">
           <svg viewBox="0 0 24 24" class="nav-icon">
             <path
               fill="currentColor"
@@ -73,43 +73,49 @@
             />
           </svg>
           <span>动态</span>
-        </router-link>
+        </button>
       </nav>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
 import { useUserStore } from '../../stores/userStore';
 
-const route = useRoute();
-const router = useRouter();
+// 定义props和emits
+const props = defineProps<{
+  activeConversationId?: string | null,
+  activePage?: string
+}>();
+
+const emit = defineEmits<{
+  navigate: [page: string, params?: any]
+}>();
+
 const chatStore = useChatStore();
 const userStore = useUserStore();
 
 const { userInfo } = storeToRefs(userStore);
 const initialized = ref(true); // 临时设为true，不阻塞显示
 
+// 根据当前活跃的页面来判断是否为消息页面
 const isMessagesActive = computed(() => {
-  if (route.name === 'chat-messages') {
-    return true;
-  }
-  return route.meta.parentRoute === 'chat-messages';
+  return props.activePage === 'messages' || (!props.activeConversationId && props.activePage !== 'contacts' && props.activePage !== 'moments');
+});
+
+// 判断是否应该隐藏header（动态页面有自定义header）
+const shouldHideHeader = computed(() => {
+  return props.activePage === 'moments';
 });
 
 const activeConversation = computed(() => {
-  if (route.name !== 'chat-conversation') {
+  if (!props.activeConversationId) {
     return undefined;
   }
-  const contactName = typeof route.params.id === 'string' ? route.params.id : undefined;
-  if (!contactName) {
-    return undefined;
-  }
-  const detail = chatStore.contactDetail(contactName);
+  const detail = chatStore.contactDetail(props.activeConversationId);
   if (!detail) {
     return undefined;
   }
@@ -120,7 +126,7 @@ const activeConversation = computed(() => {
 });
 
 function goBack() {
-  router.push({ name: 'chat-messages' });
+  emit('navigate', 'back');
 }
 
 onMounted(() => {

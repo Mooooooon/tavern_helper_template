@@ -55,6 +55,11 @@ interface ContactSection {
   }>;
 }
 
+// 定义发射事件
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
+
 const chatStore = useChatStore();
 const { contactList } = storeToRefs(chatStore);
 
@@ -149,26 +154,40 @@ const contactSections = computed<ContactSection[]>(() => {
   background: #f8f8f9;
 }
 
-.contacts-list:hover {
-  scrollbar-width: thin;
+.contacts-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .contacts-list::-webkit-scrollbar {
   width: 0;
   height: 0;
+  background: transparent;
 }
 
 .contacts-list:hover::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
+  background: transparent;
+}
+
+.contacts-list:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+
+.contacts-list:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.35);
 }
 
 .contacts-list:hover::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.contacts-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 999px;
+.contacts-list::-webkit-scrollbar-button,
+.contacts-list::-webkit-scrollbar-corner {
+  display: none;
 }
 
 .avatar-wrapper {

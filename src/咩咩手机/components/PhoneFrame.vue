@@ -18,7 +18,11 @@
           @touchend="handleRouteTouchEnd"
         >
           <div ref="dragHandleRef" class="drag-handle">
-            <PhoneStatusBar />
+            <PhoneStatusBar
+              :current-page="currentPage"
+              :status-bar-color="statusBarColor"
+              @navigate="emit('navigate', $event)"
+            />
           </div>
           <div class="phone-screen">
             <slot />
@@ -32,11 +36,17 @@
 <script setup lang="ts">
 import $ from 'jquery';
 import PhoneStatusBar from './PhoneStatusBar.vue';
-import { useRoute, useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
 
-const router = useRouter();
-const route = useRoute();
+// 定义props和emits
+const props = defineProps<{
+  currentPage?: string
+  statusBarColor?: string
+}>();
+
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
 
 // 拖动相关
 const phoneWrapperRef = ref<HTMLElement>();
@@ -170,7 +180,7 @@ function handleTouchStart(event: TouchEvent) {
 }
 
 function handleRouteTouchEnd(event: TouchEvent) {
-  if (route.path === '/') {
+  if (props.currentPage === 'home') {
     return;
   }
 
@@ -183,7 +193,7 @@ function handleRouteTouchEnd(event: TouchEvent) {
   if (Math.abs(deltaY) > 80) return;
   if (Math.abs(deltaX) < 70) return;
 
-  router.push('/');
+  emit('navigate', '/');
 }
 </script>
 

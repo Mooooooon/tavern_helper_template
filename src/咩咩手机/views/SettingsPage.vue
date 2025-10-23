@@ -84,9 +84,6 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
 
 const toggles = reactive({
   airMode: false,
@@ -94,8 +91,13 @@ const toggles = reactive({
   darkMode: false,
 });
 
+// 定义发射事件
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
+
 function goHome() {
-  router.push('/');
+  emit('navigate', '/');
 }
 </script>
 

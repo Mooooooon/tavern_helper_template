@@ -79,7 +79,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
 
@@ -92,8 +91,14 @@ type ConversationMessage = {
   time?: string;
 };
 
-const router = useRouter();
-const route = useRoute();
+// 定义props和emits
+const props = defineProps<{
+  contactId: string | null
+}>();
+
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
 
 const chatStore = useChatStore();
 const { currentTime } = storeToRefs(chatStore);
@@ -141,11 +146,10 @@ function formatTimestamp(timestamp: number): string {
 }
 
 const currentConversation = computed(() => {
-  const contactName = route.params.id as string | undefined;
-  if (!contactName) {
+  if (!props.contactId) {
     return undefined;
   }
-  return chatStore.conversationFactory(contactName, formatTimestamp);
+  return chatStore.conversationFactory(props.contactId, formatTimestamp);
 });
 
 const isGroupConversation = computed(() => currentConversation.value?.isGroup ?? false);
@@ -169,7 +173,7 @@ function shouldShowTimestamp(item: ConversationMessage, index: number): boolean 
 }
 
 function goBack() {
-  router.push({ name: 'chat-messages' });
+  emit('navigate', 'back');
 }
 </script>
 

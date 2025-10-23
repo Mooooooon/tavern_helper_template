@@ -29,20 +29,28 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onMounted, ref, watch } from 'vue';
+
+// 定义props和emits
+const props = defineProps<{
+  currentPage?: string
+  statusBarColor?: string
+}>();
+
+const emit = defineEmits<{
+  navigate: [page: string]
+}>();
 
 const currentTime = ref('--:--');
-const route = useRoute();
-const router = useRouter();
-const statusBarColor = ref('transparent');
 
 let lastTapTimestamp = 0;
 const DOUBLE_TAP_THRESHOLD = 350;
 
-watchEffect(() => {
-  statusBarColor.value = (route.meta.statusBarColor as string) || 'transparent';
-});
+watch(() => props.statusBarColor, (newColor) => {
+  if (newColor) {
+    // 直接使用传入的背景色
+  }
+}, { immediate: true });
 
 function updateTimeDisplay(timestamp: number) {
   const date = new Date(timestamp);
@@ -52,8 +60,8 @@ function updateTimeDisplay(timestamp: number) {
 }
 
 function navigateHome() {
-  if (route.name !== 'home') {
-    router.push({ name: 'home' }).catch(() => {});
+  if (props.currentPage !== 'home') {
+    emit('navigate', '/');
   }
 }
 

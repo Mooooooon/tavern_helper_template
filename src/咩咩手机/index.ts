@@ -2,11 +2,9 @@ import $ from 'jquery';
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import type { App, Component } from 'vue';
-import type { Router } from 'vue-router';
 import toastr from 'toastr';
 
 let phoneAppComponent: Component | null = null;
-let phoneRouter: Router | null = null;
 let resourceLoadPromise: Promise<void> | null = null;
 let capturedStyleElements: HTMLStyleElement[] = [];
 
@@ -96,16 +94,15 @@ function deteleportStyle() {
 }
 
 async function ensurePhoneResources(): Promise<void> {
-  if (phoneAppComponent && phoneRouter) {
+  if (phoneAppComponent) {
     return;
   }
 
   if (!resourceLoadPromise) {
     const initialStyles = new Set(document.head.querySelectorAll<HTMLStyleElement>('style'));
-    resourceLoadPromise = Promise.all([import('./PhoneApp.vue'), import('./router')])
-      .then(([phoneModule, routerModule]) => {
+    resourceLoadPromise = Promise.all([import('./PhoneApp.vue')])
+      .then(([phoneModule]) => {
         phoneAppComponent = phoneModule.default as Component;
-        phoneRouter = routerModule.default as Router;
 
         if (capturedStyleElements.length === 0) {
           const currentStyles = Array.from(document.head.querySelectorAll<HTMLStyleElement>('style'));
@@ -121,7 +118,6 @@ async function ensurePhoneResources(): Promise<void> {
       })
       .catch(error => {
         phoneAppComponent = null;
-        phoneRouter = null;
         resourceLoadPromise = null;
         throw error;
       });
@@ -200,13 +196,12 @@ async function initPhoneUI(): Promise<void> {
 
     teleportStyle(shadowRootRef);
 
-    if (!phoneAppComponent || !phoneRouter || !shadowAppContainer) {
+    if (!phoneAppComponent || !shadowAppContainer) {
       throw new Error('手机UI资源加载失败');
     }
 
     vueApp = createApp(phoneAppComponent);
     vueApp.use(pinia);
-    vueApp.use(phoneRouter);
 
     vueApp.mount(shadowAppContainer);
 
