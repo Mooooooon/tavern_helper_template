@@ -10,7 +10,8 @@
       "mcp__browsermcp__browser_wait",
       "mcp__browsermcp__browser_press_key",
       "mcp__browsermcp__browser_navigate",
-      "mcp__browsermcp__browser_hover"
+      "mcp__browsermcp__browser_hover",
+      "Bash(git push:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
