@@ -47,7 +47,7 @@
     <main class="chat-content" :class="{ 'chat-content--conversation': !!activeConversation }">
       <slot></slot>
     </main>
-    <footer v-if="!activeConversation && initialized" class="chat-footer">
+    <footer v-if="!activeConversation && initialized && activePage !== 'moments'" class="chat-footer">
       <nav>
         <button
           class="nav-item"
@@ -169,11 +169,12 @@ onMounted(() => {
 
 .chat-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 0 16px 12px;
   background-color: #ffffff;
   color: #222;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .profile {
@@ -223,6 +224,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .icon-button {
@@ -325,7 +327,6 @@ nav {
 
 .chat-header--conversation {
   gap: 12px;
-  justify-content: flex-start;
 }
 
 .header-button {
@@ -349,8 +350,8 @@ nav {
   height: 32px;
 }
 
-.header-button--more {
-  margin-left: auto;
+.header-button.header-button--more {
+  margin-left: auto !important;
 }
 
 .conversation-info {

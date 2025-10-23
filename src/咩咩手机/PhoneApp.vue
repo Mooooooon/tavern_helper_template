@@ -75,6 +75,9 @@ function navigateTo(page: string, params?: any) {
     if (currentChatPage.value === 'conversation') {
       currentChatPage.value = 'messages';
       conversationId.value = null;
+    } else if (currentChatPage.value === 'moments') {
+      // 从动态页面返回到消息列表，而不是首页
+      currentChatPage.value = 'messages';
     } else if (currentPage.value === 'chat') {
       currentPage.value = 'home';
     } else if (currentPage.value === 'settings') {
