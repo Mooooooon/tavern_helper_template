@@ -26,12 +26,40 @@ const BASE_STYLE_CONTENT = `
     box-sizing: border-box;
   }
 `.trim();
-const STYLE_KEYWORDS = ['phone-', 'settings-', 'chat-', 'moments-', 'status-bar', '咩咩'];
+const STYLE_KEYWORDS = ['phone-', 'settings-', 'chat-', 'moments-', 'status-bar', '咩咩', 'message-', 'avatar-', 'badge-', 'empty-state', 'timestamp', 'conversation-', 'profile-', 'nav-item', 'header-button'];
 
 function pickPhoneStyles(styleNodes: HTMLStyleElement[]): HTMLStyleElement[] {
   return styleNodes.filter(styleNode => {
     const content = styleNode.textContent ?? '';
-    return STYLE_KEYWORDS.some(keyword => content.includes(keyword));
+
+    // 检查是否包含咩咩手机相关样式
+    if (STYLE_KEYWORDS.some(keyword => content.includes(keyword))) {
+      return true;
+    }
+
+    // 检查是否包含Vue组件样式（通过data-v-属性识别）
+    if (content.includes('data-v-')) {
+      // 进一步检查是否包含手机UI相关的类名
+      const phoneClasses = [
+        'chat-layout', 'messages-page', 'message-item', 'message-list',
+        'message-details', 'message-top', 'message-bottom', 'avatar-wrapper',
+        'profile', 'profile-info', 'profile-name', 'profile-status',
+        'nav-item', 'nav-icon', 'header-button', 'conversation-info',
+        'conversation-name', 'conversation-meta', 'chat-content',
+        'chat-header', 'chat-footer', 'status-dot', 'actions',
+        'icon-button', 'badge', 'empty-state', 'last-message',
+        'timestamp', 'name', 'contacts-page', 'contact-item',
+        'contact-info', 'contact-status', 'moments-page', 'moment-item',
+        'moment-header', 'moment-content', 'moment-actions',
+        'conversation-page', 'conversation-messages', 'conversation-input',
+        'phone-frame', 'phone-screen', 'status-bar', 'home-page',
+        'settings-page', 'chat-app', 'settings-item', 'settings-title'
+      ];
+
+      return phoneClasses.some(className => content.includes(`.${className}`));
+    }
+
+    return false;
   });
 }
 

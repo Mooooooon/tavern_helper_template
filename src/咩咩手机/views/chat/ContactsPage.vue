@@ -85,7 +85,7 @@ const contactSections = computed<ContactSection[]>(() => {
 });
 </script>
 
-<style scoped>
+<style>
 .contacts-page {
   display: flex;
   flex-direction: column;

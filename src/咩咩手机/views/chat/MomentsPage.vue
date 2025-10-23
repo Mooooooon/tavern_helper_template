@@ -134,7 +134,7 @@ const moments = computed<MomentItem[]>(() => {
 });
 </script>
 
-<style scoped>
+<style>
 .moments-page {
   display: flex;
   flex-direction: column;

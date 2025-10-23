@@ -125,7 +125,7 @@ function openConversation(contactName: string) {
 }
 </script>
 
-<style scoped>
+<style>
 .messages-page {
   display: flex;
   flex-direction: column;

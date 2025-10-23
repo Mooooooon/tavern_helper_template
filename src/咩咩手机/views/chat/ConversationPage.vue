@@ -177,7 +177,7 @@ function goBack() {
 }
 </script>
 
-<style scoped>
+<style>
 .conversation-page {
   display: flex;
   flex-direction: column;

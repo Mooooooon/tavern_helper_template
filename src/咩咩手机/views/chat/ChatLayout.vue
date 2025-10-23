@@ -150,7 +150,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style>
 .chat-layout {
   display: flex;
   flex-direction: column;
