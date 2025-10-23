@@ -184,6 +184,14 @@ function goBack() {
   flex: 1;
   min-height: 0;
   background: #f2f3f5;
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.conversation-page::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .conversation-thread {

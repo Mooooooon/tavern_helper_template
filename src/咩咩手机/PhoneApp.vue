@@ -105,4 +105,58 @@ onMounted(() => {
 
 <style lang="scss">
 // 全局样式将在此定义
+
+/* 全局滚动条隐藏 */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* 全局按钮重置样式 */
+button {
+  border: none !important;
+  background: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 针对特定类名的按钮样式 */
+.nav-item,
+.header-button,
+.icon-button,
+.moment-more {
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  cursor: pointer;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.nav-item:focus,
+.header-button:focus,
+.icon-button:focus,
+.moment-more:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
 </style>

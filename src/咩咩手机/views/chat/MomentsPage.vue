@@ -141,6 +141,14 @@ const moments = computed<MomentItem[]>(() => {
   flex: 1;
   min-height: 0;
   background: #f6f6f7;
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.moments-page::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .moments-header {
@@ -202,10 +210,10 @@ const moments = computed<MomentItem[]>(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  scrollbar-width: none;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   background-color: #ffffff;
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .moment-card {
@@ -321,39 +329,9 @@ const moments = computed<MomentItem[]>(() => {
   color: #9b9b9f;
 }
 
-.moments-list {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
+/* WebKit 隐藏滚动条 */
 .moments-list::-webkit-scrollbar {
   width: 0;
   height: 0;
-  background: transparent;
-}
-
-.moments-list:hover::-webkit-scrollbar {
-  width: 3px;
-  background: transparent;
-}
-
-.moments-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  -webkit-transition: background-color 0.3s ease;
-  transition: background-color 0.3s ease;
-}
-
-.moments-list:hover::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.35);
-}
-
-.moments-list:hover::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.moments-list::-webkit-scrollbar-button,
-.moments-list::-webkit-scrollbar-corner {
-  display: none;
 }
 </style>

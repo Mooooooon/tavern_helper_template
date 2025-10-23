@@ -94,6 +94,14 @@ const contactSections = computed<ContactSection[]>(() => {
   padding: 0;
   gap: 16px;
   background: #ffffff;
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.contacts-page::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .contacts-list {
@@ -103,9 +111,9 @@ const contactSections = computed<ContactSection[]>(() => {
   flex-direction: column;
   gap: 12px;
   padding-right: 4px;
+  /* 隐藏滚动条 */
   scrollbar-width: none;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: none;
 }
 
 .contact-section {
@@ -154,40 +162,10 @@ const contactSections = computed<ContactSection[]>(() => {
   background: #f8f8f9;
 }
 
-.contacts-list {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
+/* WebKit 隐藏滚动条 */
 .contacts-list::-webkit-scrollbar {
   width: 0;
   height: 0;
-  background: transparent;
-}
-
-.contacts-list:hover::-webkit-scrollbar {
-  width: 3px;
-  background: transparent;
-}
-
-.contacts-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  -webkit-transition: background-color 0.3s ease;
-  transition: background-color 0.3s ease;
-}
-
-.contacts-list:hover::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.35);
-}
-
-.contacts-list:hover::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.contacts-list::-webkit-scrollbar-button,
-.contacts-list::-webkit-scrollbar-corner {
-  display: none;
 }
 
 .avatar-wrapper {

@@ -131,6 +131,14 @@ function openConversation(contactName: string) {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.messages-page::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .message-list {
@@ -139,9 +147,9 @@ function openConversation(contactName: string) {
   display: flex;
   flex-direction: column;
   gap: 0;
+  /* 隐藏滚动条 */
   scrollbar-width: none;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: none;
 }
 
 .message-item {
@@ -173,40 +181,10 @@ function openConversation(contactName: string) {
   padding-bottom: 16px;
 }
 
-.message-list {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
+/* WebKit 隐藏滚动条 */
 .message-list::-webkit-scrollbar {
   width: 0;
   height: 0;
-  background: transparent;
-}
-
-.message-list:hover::-webkit-scrollbar {
-  width: 3px;
-  background: transparent;
-}
-
-.message-list:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  -webkit-transition: background-color 0.3s ease;
-  transition: background-color 0.3s ease;
-}
-
-.message-list:hover::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.35);
-}
-
-.message-list:hover::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.message-list::-webkit-scrollbar-button,
-.message-list::-webkit-scrollbar-corner {
-  display: none;
 }
 
 .avatar-wrapper {

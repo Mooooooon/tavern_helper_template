@@ -59,13 +59,13 @@
           </svg>
           <span>消息</span>
         </button>
-        <button class="nav-item" @click="emit('navigate', '/chat/contacts')">
+        <button class="nav-item" :class="{ 'nav-item--active': isContactsActive }" @click="emit('navigate', '/chat/contacts')">
           <svg viewBox="0 0 24 24" class="nav-icon">
             <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
           </svg>
           <span>联系人</span>
         </button>
-        <button class="nav-item" @click="emit('navigate', '/chat/moments')">
+        <button class="nav-item" :class="{ 'nav-item--active': isMomentsActive }" @click="emit('navigate', '/chat/moments')">
           <svg viewBox="0 0 24 24" class="nav-icon">
             <path
               fill="currentColor"
@@ -104,6 +104,16 @@ const initialized = ref(true); // 临时设为true，不阻塞显示
 // 根据当前活跃的页面来判断是否为消息页面
 const isMessagesActive = computed(() => {
   return props.activePage === 'messages' || (!props.activeConversationId && props.activePage !== 'contacts' && props.activePage !== 'moments');
+});
+
+// 判断联系人页面是否激活
+const isContactsActive = computed(() => {
+  return props.activePage === 'contacts';
+});
+
+// 判断动态页面是否激活
+const isMomentsActive = computed(() => {
+  return props.activePage === 'moments';
 });
 
 // 判断是否应该隐藏header（动态页面有自定义header）
@@ -147,6 +157,14 @@ onMounted(() => {
   flex: 1;
   min-height: 0;
   background-color: #f6f6f7;
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chat-layout::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .chat-header {
@@ -262,6 +280,23 @@ nav {
   gap: 2px;
   position: relative;
   transition: color 0.2s ease;
+  /* 强制重置按钮样式 */
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  cursor: pointer;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.nav-item:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .nav-icon {
