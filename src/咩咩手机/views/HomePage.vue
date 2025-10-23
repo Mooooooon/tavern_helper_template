@@ -283,19 +283,19 @@ async function setupMvuListener() {
 }
 
 .dock-app--phone {
-  background: linear-gradient(150deg, #40e19d 0%, #1dbf79 100%);
+  background: linear-gradient(150deg, #40e19d 0%, #1dbf79 100%) !important;
 }
 
 .dock-app--message {
-  background: linear-gradient(150deg, #5aa9ff 0%, #306dff 100%);
+  background: linear-gradient(150deg, #5aa9ff 0%, #306dff 100%) !important;
 }
 
 .dock-app--gallery {
-  background: linear-gradient(150deg, #ff8abb 0%, #ff5f7d 100%);
+  background: linear-gradient(150deg, #ff8abb 0%, #ff5f7d 100%) !important;
 }
 
 .dock-app--music {
-  background: linear-gradient(150deg, #ffb064 0%, #ff7b45 100%);
+  background: linear-gradient(150deg, #ffb064 0%, #ff7b45 100%) !important;
 }
 
 .home-dock__indicator {
