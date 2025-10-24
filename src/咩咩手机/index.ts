@@ -341,7 +341,7 @@ async function initPhoneUI(): Promise<void> {
     shadowRootRef = shadowHost.attachShadow({ mode: 'open' });
     shadowAppContainer = document.createElement('div');
     shadowAppContainer.setAttribute(PHONE_ROOT_ATTR, getScriptId());
-    shadowAppContainer.style.pointerEvents = 'none';
+    shadowAppContainer.style.pointerEvents = 'auto';
     shadowRootRef.appendChild(shadowAppContainer);
 
     injectBaseStyle(shadowRootRef);
@@ -525,6 +525,52 @@ function showCacheStatus(): void {
   }
 }
 
+// MVU变量更新后重新读取聊天记录和动态
+async function handleMvuVariableUpdate(): Promise<void> {
+  if (!vueApp) {
+    return; // 手机UI未初始化，跳过处理
+  }
+
+  try {
+    console.log('[咩咩手机] MVU变量更新，开始重新读取数据');
+
+    // 等待MVU初始化
+    await waitGlobalInitialized('Mvu');
+
+    // 获取chatStore实例并重新读取数据
+    const { useChatStore } = await import('./stores/chatStore');
+    const chatStore = useChatStore();
+
+    // 重新从MVU读取数据
+    await chatStore.refreshFromMvu();
+
+    console.log('[咩咩手机] 数据重新读取完成');
+
+    // 如果需要，可以触发重新预加载头像
+    const { useUserStore } = await import('./stores/userStore');
+    const userStore = useUserStore();
+    await preloadAllAvatars(userStore, chatStore);
+
+    // 强制触发Vue组件更新
+    vueApp.config.globalProperties.$forceUpdate?.();
+
+    // 使用暴露的强制更新函数
+    try {
+      if (typeof (window as any).__phoneAppForceUpdate === 'function') {
+        (window as any).__phoneAppForceUpdate();
+      }
+    } catch (e) {
+      console.log('[咩咩手机] 调用强制更新函数失败:', e);
+    }
+
+    toastr.success('手机数据已刷新');
+
+  } catch (error) {
+    console.error('[咩咩手机] MVU变量更新处理失败:', error);
+    toastr.error('数据刷新失败');
+  }
+}
+
 // 加载时注册事件
 $(() => {
   console.log('脚本加载完成，开始注册按钮');
@@ -533,13 +579,23 @@ $(() => {
   initGlobalCache();
 
   // 注册按钮
-  replaceScriptButtons([{ name: '召唤手机', visible: true }]);
+  replaceScriptButtons([
+    { name: '召唤手机', visible: true },
+    { name: '刷新手机数据', visible: true }
+  ]);
   console.log('按钮已注册');
 
   // 注册按钮点击事件
   eventOn(getButtonEvent('召唤手机'), () => {
     console.log('召唤手机按钮被点击');
     togglePhoneUI();
+  });
+
+  // 注册刷新数据按钮点击事件
+  eventOn(getButtonEvent('刷新手机数据'), () => {
+    console.log('刷新手机数据按钮被点击');
+    void handleMvuVariableUpdate();
+    toastr.info('正在刷新手机数据...');
   });
   console.log('按钮事件已绑定');
 
@@ -561,15 +617,48 @@ $(() => {
     });
   });
 
+  // 注册MVU变量更新事件监听
+  try {
+    // 等待MVU框架初始化
+    waitGlobalInitialized('Mvu').then(() => {
+      console.log('[咩咩手机] MVU框架已初始化，注册变量更新事件监听');
+
+      // 监听MVU变量更新结束事件
+      eventOn('MvuVariableUpdateEnded', () => {
+        console.log('[咩咩手机] 监听到MVU变量更新事件');
+        void handleMvuVariableUpdate();
+      });
+
+      // 备用方案：直接使用Mvu的事件常量
+      if (typeof Mvu !== 'undefined' && Mvu.events?.VARIABLE_UPDATE_ENDED) {
+        eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: any) => {
+          console.log('[咩咩手机] 监听到MVU事件:', Mvu.events.VARIABLE_UPDATE_ENDED);
+          void handleMvuVariableUpdate();
+        });
+      }
+    }).catch((error) => {
+      console.warn('[咩咩手机] MVU框架初始化失败:', error);
+    });
+  } catch (error) {
+    console.warn('[咩咩手机] 注册MVU事件监听失败:', error);
+  }
+
   toastr.success('咩咩手机脚本已加载');
 
   // 暴露调试函数到全局
   (window as any).__phoneDebug = {
     clearCache: clearAvatarCache,
     showCache: showCacheStatus,
-    initCache: initGlobalCache
+    initCache: initGlobalCache,
+    refreshMvu: handleMvuVariableUpdate,
+    refreshMvuSync: () => {
+      void handleMvuVariableUpdate();
+    }
   };
   console.log('[init] 调试函数已暴露到 window.__phoneDebug');
+
+  // 也暴露handleMvuVariableUpdate到全局，方便其他脚本调用
+  (window as any).__phoneMvuRefresh = handleMvuVariableUpdate;
 });
 
 // 卸载时清理

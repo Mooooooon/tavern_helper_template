@@ -333,6 +333,8 @@ export const useChatStore = defineStore('chatStore', {
     },
     async refreshFromMvu(): Promise<void> {
       try {
+        console.log('[chatStore] 开始重新读取MVU数据');
+
         // 设置超时，避免无限等待
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('MVU初始化超时')), 3000);
@@ -342,7 +344,10 @@ export const useChatStore = defineStore('chatStore', {
         await Promise.race([mvuPromise, timeoutPromise]);
 
         const mvuData = Mvu.getMvuData({ type: 'chat' });
+        console.log('[chatStore] 获取到MVU数据:', mvuData);
         this.applyMvuSnapshot(mvuData);
+
+        console.log('[chatStore] MVU数据重新读取完成，聊天记录和动态已更新');
       } catch (error) {
         console.warn('[chatStore] MVU初始化失败，使用默认数据:', error);
         // 使用默认数据初始化
@@ -363,7 +368,10 @@ export const useChatStore = defineStore('chatStore', {
               default_value: {},
             })
           : {};
+
+        console.log('[chatStore] 开始应用MVU快照，联系人数据:', contactsData);
         this.updateContacts(contactsData);
+        console.log('[chatStore] MVU快照应用完成，聊天记录和动态已更新');
       } catch (error) {
         console.warn('[chatStore] 应用MVU数据失败，使用默认值:', error);
         this.updateCurrentTime(Date.now());
@@ -378,6 +386,8 @@ export const useChatStore = defineStore('chatStore', {
       const nextContacts: Record<string, ContactRecord> = {};
       const nextOrder: string[] = [];
       const nextDynamics: MomentSummary[] = [];
+
+      console.log('[chatStore] 开始更新联系人，原始数据:', rawContacts);
 
       for (const [contactName, info] of Object.entries(rawContacts)) {
         if (!info || !isObject(info)) {
@@ -400,6 +410,12 @@ export const useChatStore = defineStore('chatStore', {
           dynamics: Array.isArray(raw.空间动态) ? raw.空间动态 : [],
         };
 
+        console.log(`[chatStore] 处理联系人 ${contactName}:`, {
+          displayName: contact.displayName,
+          chatLogEntries: Object.keys(contact.chatLog).length,
+          dynamicsCount: contact.dynamics.length
+        });
+
         const dynamics = parseDynamics(contact.displayName, contact.dynamics);
         dynamics.forEach(item => {
           nextDynamics.push({
@@ -413,9 +429,20 @@ export const useChatStore = defineStore('chatStore', {
         nextOrder.push(contactName);
       }
 
-      this.contacts = nextContacts;
-      this.contactOrder = nextOrder;
-      this.dynamics = nextDynamics;
+      // 使用Vue的响应式更新方式
+      this.$patch({
+        contacts: nextContacts,
+        contactOrder: nextOrder,
+        dynamics: nextDynamics
+      });
+
+      console.log('[chatStore] 联系人更新完成:', {
+        contactCount: nextOrder.length,
+        totalDynamics: nextDynamics.length
+      });
+
+      // 手动触发更新以确保响应式
+      this.currentTime = Date.now();
     },
     async registerListener(): Promise<void> {
       if (this.listenerRegistered) {
@@ -423,6 +450,8 @@ export const useChatStore = defineStore('chatStore', {
       }
 
       try {
+        console.log('[chatStore] 开始注册MVU变量更新监听器');
+
         // 设置超时，避免无限等待
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('MVU监听器初始化超时')), 3000);
@@ -431,13 +460,19 @@ export const useChatStore = defineStore('chatStore', {
         const mvuPromise = waitGlobalInitialized('Mvu');
         await Promise.race([mvuPromise, timeoutPromise]);
 
+        console.log('[chatStore] MVU框架初始化成功，注册事件监听器:', Mvu.events.VARIABLE_UPDATE_ENDED);
+
         eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
+          console.log('[chatStore] 监听到MVU变量更新事件');
           try {
             this.applyMvuSnapshot(variables);
+            console.log('[chatStore] MVU变量事件处理完成');
           } catch (error) {
             console.error('[chatStore] 更新 MVU 数据失败:', error);
           }
         });
+
+        console.log('[chatStore] MVU事件监听器注册成功');
       } catch (error) {
         console.warn('[chatStore] MVU监听器初始化失败:', error);
       }

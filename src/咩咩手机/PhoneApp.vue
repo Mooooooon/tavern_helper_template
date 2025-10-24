@@ -5,57 +5,54 @@
     @navigate="navigateTo"
   >
     <!-- 首页 -->
-    <KeepAlive>
-      <HomePage v-if="currentPage === 'home'" @navigate="navigateTo" />
-    </KeepAlive>
+    <HomePage v-if="currentPage === 'home'" @navigate="navigateTo" />
 
     <!-- 设置页面 -->
-    <KeepAlive>
-      <SettingsPage v-if="currentPage === 'settings'" @navigate="navigateTo" />
-    </KeepAlive>
+    <SettingsPage v-if="currentPage === 'settings'" @navigate="navigateTo" />
 
     <!-- 聊天应用 -->
-    <KeepAlive>
-      <ChatApp v-if="currentPage === 'chat'" @navigate="navigateTo">
-        <KeepAlive>
-          <ChatLayout
-            v-if="currentPage === 'chat'"
-            :active-conversation-id="conversationId"
-            :active-page="currentChatPage"
-            @navigate="navigateTo"
-          >
-          <!-- 消息列表 -->
-          <KeepAlive>
-            <MessagesPage v-if="currentChatPage === 'messages'" @navigate="navigateTo" />
-          </KeepAlive>
+    <ChatApp v-if="currentPage === 'chat'" @navigate="navigateTo">
+      <ChatLayout
+        v-if="currentPage === 'chat'"
+        :active-conversation-id="conversationId"
+        :active-page="currentChatPage"
+        @navigate="navigateTo"
+      >
+        <!-- 消息列表 -->
+        <MessagesPage
+          v-if="currentChatPage === 'messages'"
+          :key="`messages-${chatStoreUpdateKey}`"
+          @navigate="navigateTo"
+        />
 
-          <!-- 联系人页面 -->
-          <KeepAlive>
-            <ContactsPage v-if="currentChatPage === 'contacts'" @navigate="navigateTo" />
-          </KeepAlive>
+        <!-- 联系人页面 -->
+        <ContactsPage
+          v-if="currentChatPage === 'contacts'"
+          :key="`contacts-${chatStoreUpdateKey}`"
+          @navigate="navigateTo"
+        />
 
-          <!-- 动态页面 -->
-          <KeepAlive>
-            <MomentsPage v-if="currentChatPage === 'moments'" @navigate="navigateTo" />
-          </KeepAlive>
+        <!-- 动态页面 -->
+        <MomentsPage
+          v-if="currentChatPage === 'moments'"
+          :key="`moments-${chatStoreUpdateKey}`"
+          @navigate="navigateTo"
+        />
 
-          <!-- 对话页面 -->
-          <KeepAlive>
-            <ConversationPage
-              v-if="currentChatPage === 'conversation' && !!conversationId"
-              :contact-id="conversationId"
-              @navigate="navigateTo"
-            />
-          </KeepAlive>
-          </ChatLayout>
-        </KeepAlive>
-      </ChatApp>
-    </KeepAlive>
+        <!-- 对话页面 -->
+        <ConversationPage
+          v-if="currentChatPage === 'conversation' && !!conversationId"
+          :contact-id="conversationId"
+          :key="`conversation-${conversationId}-${chatStoreUpdateKey}`"
+          @navigate="navigateTo"
+        />
+      </ChatLayout>
+    </ChatApp>
   </PhoneFrame>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import PhoneFrame from './components/PhoneFrame.vue';
 import HomePage from './views/HomePage.vue';
 import SettingsPage from './views/SettingsPage.vue';
@@ -73,8 +70,26 @@ const currentPage = ref<'home' | 'settings' | 'chat'>('home');
 const currentChatPage = ref<'messages' | 'contacts' | 'moments' | 'conversation'>('messages');
 const conversationId = ref<string | null>(null);
 
+// 用于强制组件更新的key
+const chatStoreUpdateKey = ref(0);
+
 const chatStore = useChatStore();
 const userStore = useUserStore();
+
+// 监听chatStore的变化，触发组件更新
+watch(
+  () => [
+    chatStore.currentTime,
+    chatStore.contactOrder,
+    chatStore.dynamics,
+    Object.keys(chatStore.contacts).length
+  ],
+  () => {
+    console.log('[PhoneApp] 检测到chatStore数据变化，更新UI组件');
+    chatStoreUpdateKey.value++;
+  },
+  { deep: true }
+);
 
 function setChatView(target: typeof currentChatPage.value, id: string | null = null) {
   currentPage.value = 'chat';
@@ -154,6 +169,17 @@ onMounted(() => {
   void chatStore.ensureInitialized();
   void userStore.ensureInitialized();
 });
+
+// 暴露给外部调用的强制更新函数
+function forceUpdateChatUI() {
+  console.log('[PhoneApp] 强制更新聊天UI');
+  chatStoreUpdateKey.value++;
+}
+
+// 将函数暴露到全局，供外部调用
+if (typeof window !== 'undefined') {
+  (window as any).__phoneAppForceUpdate = forceUpdateChatUI;
+}
 </script>
 
 <style lang="scss">
