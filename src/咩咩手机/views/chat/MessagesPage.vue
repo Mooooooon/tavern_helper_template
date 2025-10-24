@@ -108,12 +108,32 @@ function formatTimestamp(timestamp: number, nowMs: number): string {
   return isSameYear ? `${month}/${day}` : `${date.getFullYear()}/${month}/${day}`;
 }
 
+const MESSAGE_PREVIEW_MAX_LENGTH = 48;
+
+function formatMessagePreview(text: string, maxLength = MESSAGE_PREVIEW_MAX_LENGTH): string {
+  if (typeof text !== 'string') {
+    return '';
+  }
+
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  const graphemes = Array.from(normalized);
+  if (graphemes.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${graphemes.slice(0, maxLength).join('')}…`;
+}
+
 const messages = computed<DisplayMessage[]>(() => {
   const now = currentTime.value ?? Date.now();
   return messageSummaries.value.map(summary => ({
     contactName: summary.contactName,
     name: summary.name,
-    lastMessage: summary.lastMessage,
+    lastMessage: formatMessagePreview(summary.lastMessage),
     timestamp: summary.timestamp,
     avatar: summary.avatar,
     time: formatTimestamp(summary.timestamp, now),
@@ -137,6 +157,9 @@ function openConversation(contactName: string) {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   /* 隐藏滚动条 */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -150,23 +173,34 @@ function openConversation(contactName: string) {
 .message-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
+  width: 100%;
+  max-width: 100%;
   /* 隐藏滚动条 */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 .message-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px 12px;
-  border: none;
-  background: transparent;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
+  display: flex !important;
+  gap: 12px !important;
+  padding: 12px 12px !important;
+  border: none !important;
+  background: transparent !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  align-items: center !important;
+  min-height: 72px !important;
+  max-height: 72px !important;
+  height: 72px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 
 .message-item:focus-visible {
@@ -224,11 +258,14 @@ function openConversation(contactName: string) {
 }
 
 .message-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  justify-content: space-between !important;
 }
 
 .message-top {
@@ -236,12 +273,19 @@ function openConversation(contactName: string) {
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
 }
 
 .name {
   font-weight: 600;
   font-size: 15px;
   color: #1f1f1f;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .timestamp {
@@ -254,15 +298,23 @@ function openConversation(contactName: string) {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .last-message {
-  flex: 1;
-  font-size: 13px;
-  color: #5a5a5f;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 !important;
+  font-size: 13px !important;
+  color: #5a5a5f !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.3;
+  overflow-wrap: anywhere !important;
 }
 
 .message-bottom.pinned {
@@ -283,5 +335,15 @@ function openConversation(contactName: string) {
 .empty-state svg {
   width: 48px;
   height: 48px;
+}
+
+@supports (-webkit-line-clamp: 1) or (line-clamp: 1) {
+  .last-message {
+    display: -webkit-box !important;
+    white-space: normal !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
 }
 </style>
