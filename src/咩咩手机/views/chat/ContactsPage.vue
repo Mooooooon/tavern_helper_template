@@ -1,5 +1,5 @@
 <template>
-  <div class="contacts-page" v-if="hasContacts">
+  <div v-if="hasContacts" class="contacts-page">
     <div class="contacts-list">
       <div
         v-for="section in contactSections"

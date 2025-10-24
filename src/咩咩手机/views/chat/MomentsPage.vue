@@ -1,7 +1,7 @@
 <template>
   <div class="moments-page">
     <header class="moments-header">
-      <button @click="emit('navigate', 'back')" class="header-button header-button--back" type="button" aria-label="返回">
+      <button class="header-button header-button--back" type="button" aria-label="返回" @click="emit('navigate', 'back')">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
         </svg>

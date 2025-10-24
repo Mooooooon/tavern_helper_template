@@ -1,5 +1,5 @@
 <template>
-  <div class="conversation-page" v-if="currentConversation">
+  <div v-if="currentConversation" class="conversation-page">
     <div class="conversation-thread">
       <template v-for="(item, index) in currentConversation.messages" :key="item.id">
         <!-- 显示时间分隔符 -->

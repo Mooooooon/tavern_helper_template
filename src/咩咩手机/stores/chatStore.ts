@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { resolveAvatar } from '../utils/avatar';
 
 type ChatLogEntry = {
   is_user?: boolean;
@@ -86,61 +87,6 @@ type ConversationDetail = {
 declare const waitGlobalInitialized: (key: string) => Promise<void>;
 declare const eventOn: (event: string, handler: (...args: any[]) => void) => void;
 
-// 头像处理函数
-function getCharAvatarGetter():
-  | ((character: string, cache?: boolean) => string | undefined)
-  | undefined {
-  if (typeof getCharAvatarPath === 'function') {
-    return getCharAvatarPath;
-  }
-  const helperGetter = (globalThis as any)?.TavernHelper?.getCharAvatarPath;
-  if (typeof helperGetter === 'function') {
-    return helperGetter;
-  }
-  return undefined;
-}
-
-function toCharKey(source?: string): string | undefined {
-  if (!source) {
-    return undefined;
-  }
-  if (!source.startsWith('char')) {
-    return undefined;
-  }
-  const [, charName] = source.split(':');
-  const trimmed = charName?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : 'current';
-}
-
-function resolveAvatar(source?: string): string | undefined {
-  if (!source) {
-    return undefined;
-  }
-  if (source === 'undefined' || source === 'null') {
-    return undefined;
-  }
-
-  const charKey = toCharKey(source);
-  if (!charKey) {
-    return source;
-  }
-
-  const getter = getCharAvatarGetter();
-  if (!getter) {
-    return undefined;
-  }
-
-  try {
-    const resolved = getter(charKey, true);
-    if (resolved) {
-      return resolved;
-    }
-  } catch (error) {
-    console.warn(`[chatStore] 获取角色卡头像失败(${charKey}):`, error);
-  }
-
-  return undefined;
-}
 declare const Mvu: {
   events: {
     VARIABLE_UPDATE_ENDED: string;

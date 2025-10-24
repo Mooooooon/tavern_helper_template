@@ -1,7 +1,7 @@
 <template>
   <div class="phone-status-bar" :style="{ backgroundColor: statusBarColor }" @click="handleStatusBarTap">
     <div class="status-left">
-      <span class="time">{{ currentTime }}</span>
+      <span class="time">{{ displayedTime }}</span>
     </div>
 
     <div class="status-right" aria-hidden="true">
@@ -29,7 +29,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useChatStore } from '../stores/chatStore';
 
 // 定义props和emits
 const props = defineProps<{
@@ -41,22 +43,18 @@ const emit = defineEmits<{
   navigate: [page: string]
 }>();
 
-const currentTime = ref('--:--');
+const chatStore = useChatStore();
+const { currentTime } = storeToRefs(chatStore);
 
 let lastTapTimestamp = 0;
 const DOUBLE_TAP_THRESHOLD = 350;
 
-watch(() => props.statusBarColor, (newColor) => {
-  if (newColor) {
-    // 直接使用传入的背景色
-  }
-}, { immediate: true });
-
-function updateTimeDisplay(timestamp: number) {
-  const date = new Date(timestamp);
+function formatTime(timestamp: number | undefined): string {
+  const value = typeof timestamp === 'number' ? timestamp : Date.now();
+  const date = new Date(value);
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
-  currentTime.value = `${hours}:${minutes}`;
+  return `${hours}:${minutes}`;
 }
 
 function navigateHome() {
@@ -75,62 +73,11 @@ function handleStatusBarTap() {
   lastTapTimestamp = now;
 }
 
+const displayedTime = computed(() => formatTime(currentTime.value));
+
 onMounted(() => {
-  void loadCurrentTime();
-  void setupMvuListener();
+  void chatStore.ensureInitialized();
 });
-
-async function loadCurrentTime() {
-  if (typeof waitGlobalInitialized !== 'function') {
-    updateTimeDisplay(Date.now());
-    return;
-  }
-
-  try {
-    await waitGlobalInitialized('Mvu');
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
-    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
-      default_value: Date.now(),
-    });
-    const timestamp =
-      typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
-    if (Number.isFinite(timestamp)) {
-      updateTimeDisplay(timestamp);
-    } else {
-      updateTimeDisplay(Date.now());
-    }
-  } catch (error) {
-    console.warn('[PhoneStatusBar] 获取当前时间失败', error);
-    updateTimeDisplay(Date.now());
-  }
-}
-
-async function setupMvuListener() {
-  if (typeof waitGlobalInitialized !== 'function' || typeof eventOn !== 'function') {
-    return;
-  }
-
-  try {
-    await waitGlobalInitialized('Mvu');
-
-    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
-      try {
-        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
-          default_value: Date.now(),
-        });
-        const timestamp =
-          typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
-        if (Number.isFinite(timestamp)) {
-          updateTimeDisplay(timestamp);
-        }
-      } catch (error) {
-        console.warn('[PhoneStatusBar] 监听当前时间失败', error);
-      }
-    });
-  } catch (error) {
-    console.warn('[PhoneStatusBar] 设置当前时间监听失败', error);
-  }
-}
 </script>
 
 <style lang="scss" scoped>

@@ -12,7 +12,7 @@
 
     <!-- 聊天应用 -->
     <ChatApp v-else-if="currentPage === 'chat'" @navigate="navigateTo">
-      <ChatLayout @navigate="navigateTo" :active-conversation-id="conversationId" :active-page="currentChatPage">
+      <ChatLayout :active-conversation-id="conversationId" :active-page="currentChatPage" @navigate="navigateTo">
         <!-- 消息列表 -->
         <MessagesPage v-if="currentChatPage === 'messages'" @navigate="navigateTo" />
 
@@ -45,64 +45,94 @@ import MessagesPage from './views/chat/MessagesPage.vue';
 import ContactsPage from './views/chat/ContactsPage.vue';
 import MomentsPage from './views/chat/MomentsPage.vue';
 import ConversationPage from './views/chat/ConversationPage.vue';
+import { useChatStore } from './stores/chatStore';
+import { useUserStore } from './stores/userStore';
 
 // 当前页面状态
 const currentPage = ref<'home' | 'settings' | 'chat'>('home');
 const currentChatPage = ref<'messages' | 'contacts' | 'moments' | 'conversation'>('messages');
 const conversationId = ref<string | null>(null);
 
-// 导航处理
-function navigateTo(page: string, params?: any) {
-  if (page === '/') {
-    currentPage.value = 'home';
-  } else if (page === '/settings') {
-    currentPage.value = 'settings';
-  } else if (page === '/chat' || page === '/chat/messages') {
-    currentPage.value = 'chat';
+const chatStore = useChatStore();
+const userStore = useUserStore();
+
+function setChatView(target: typeof currentChatPage.value, id: string | null = null) {
+  currentPage.value = 'chat';
+  currentChatPage.value = target;
+  conversationId.value = target === 'conversation' ? id : null;
+}
+
+function handleBackNavigation() {
+  if (currentChatPage.value === 'conversation') {
     currentChatPage.value = 'messages';
-  } else if (page === '/chat/contacts') {
-    currentPage.value = 'chat';
-    currentChatPage.value = 'contacts';
-  } else if (page === '/chat/moments') {
-    currentPage.value = 'chat';
-    currentChatPage.value = 'moments';
-  } else if (page.startsWith('/chat/messages/')) {
-    currentPage.value = 'chat';
-    currentChatPage.value = 'conversation';
-    conversationId.value = params?.id || page.split('/').pop() || null;
-  } else if (page === 'back') {
-    // 处理返回操作
-    if (currentChatPage.value === 'conversation') {
-      currentChatPage.value = 'messages';
-      conversationId.value = null;
-    } else if (currentChatPage.value === 'moments') {
-      // 从动态页面返回到消息列表，而不是首页
-      currentChatPage.value = 'messages';
-    } else if (currentPage.value === 'chat') {
+    conversationId.value = null;
+    return;
+  }
+
+  if (currentChatPage.value === 'moments') {
+    currentChatPage.value = 'messages';
+    return;
+  }
+
+  if (currentPage.value === 'chat' || currentPage.value === 'settings') {
+    currentPage.value = 'home';
+  }
+}
+
+// 导航处理
+function navigateTo(page: string, params?: Record<string, any>) {
+  const chatPageMap: Record<string, typeof currentChatPage.value> = {
+    '/chat': 'messages',
+    '/chat/messages': 'messages',
+    '/chat/contacts': 'contacts',
+    '/chat/moments': 'moments',
+  };
+
+  if (page === 'back') {
+    handleBackNavigation();
+    return;
+  }
+
+  if (page in chatPageMap) {
+    setChatView(chatPageMap[page]);
+    return;
+  }
+
+  if (page.startsWith('/chat/messages/')) {
+    const id = typeof params?.id === 'string' ? params.id : page.split('/').pop() || null;
+    setChatView('conversation', id);
+    return;
+  }
+
+  switch (page) {
+    case '/':
       currentPage.value = 'home';
-    } else if (currentPage.value === 'settings') {
-      currentPage.value = 'home';
-    }
+      break;
+    case '/settings':
+      currentPage.value = 'settings';
+      break;
+    default:
+      break;
   }
 }
 
 // 根据当前页面获取状态栏颜色
 function getStatusBarColor(): string {
-  if (currentPage.value === 'home') {
-    return 'transparent';
-  } else if (currentPage.value === 'settings') {
-    return '#f6f8ff';
-  } else if (currentPage.value === 'chat') {
-    if (currentChatPage.value === 'conversation') {
+  switch (currentPage.value) {
+    case 'home':
+      return 'transparent';
+    case 'settings':
+      return '#f6f8ff';
+    case 'chat':
       return '#fff';
-    }
-    return '#fff';
+    default:
+      return 'transparent';
   }
-  return 'transparent';
 }
 
 onMounted(() => {
-  console.log('手机UI已加载');
+  void chatStore.ensureInitialized();
+  void userStore.ensureInitialized();
 });
 </script>
 

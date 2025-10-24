@@ -1,8 +1,8 @@
 <template>
   <div class="home-page">
     <header class="home-header">
-      <div class="home-clock">{{ currentTime }}</div>
-      <div class="home-date">{{ currentDate }}</div>
+      <div class="home-clock">{{ currentTimeText }}</div>
+      <div class="home-date">{{ currentDateText }}</div>
     </header>
 
     <section class="home-app-grid">
@@ -65,19 +65,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-
-const currentTime = ref('--:--');
-const currentDate = ref('');
+import { computed, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useChatStore } from '../stores/chatStore';
 
 // 定义发射事件
 const emit = defineEmits<{
   navigate: [page: string]
 }>();
 
+const chatStore = useChatStore();
+const { currentTime: storeCurrentTime } = storeToRefs(chatStore);
+
 onMounted(() => {
-  void loadCurrentTime();
-  void setupMvuListener();
+  void chatStore.ensureInitialized();
 });
 
 function goSettings() {
@@ -88,69 +89,25 @@ function goChat() {
   emit('navigate', '/chat');
 }
 
-function updateDisplay(timestamp: number) {
-  const date = new Date(timestamp);
+function resolveTimestamp(): number {
+  const value = storeCurrentTime.value;
+  return typeof value === 'number' && Number.isFinite(value) ? value : Date.now();
+}
+
+const currentTimeText = computed(() => {
+  const date = new Date(resolveTimestamp());
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
-  currentTime.value = `${hours}:${minutes}`;
+  return `${hours}:${minutes}`;
+});
 
+const currentDateText = computed(() => {
+  const date = new Date(resolveTimestamp());
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-  currentDate.value = `${month}月${day}日 · ${weekdays[date.getDay()]}`;
-}
-
-async function loadCurrentTime() {
-  if (typeof waitGlobalInitialized !== 'function') {
-    updateDisplay(Date.now());
-    return;
-  }
-
-  try {
-    await waitGlobalInitialized('Mvu');
-    const mvuData = Mvu.getMvuData({ type: 'chat' });
-    const mvuCurrentTime = Mvu.getMvuVariable(mvuData, '手机数据.当前时间', {
-      default_value: Date.now(),
-    });
-    const timestamp =
-      typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
-    if (Number.isFinite(timestamp)) {
-      updateDisplay(timestamp);
-    } else {
-      updateDisplay(Date.now());
-    }
-  } catch (error) {
-    console.warn('[HomePage] 获取当前时间失败', error);
-    updateDisplay(Date.now());
-  }
-}
-
-async function setupMvuListener() {
-  if (typeof waitGlobalInitialized !== 'function' || typeof eventOn !== 'function') {
-    return;
-  }
-
-  try {
-    await waitGlobalInitialized('Mvu');
-
-    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: Mvu.MvuData) => {
-      try {
-        const mvuCurrentTime = Mvu.getMvuVariable(variables, '手机数据.当前时间', {
-          default_value: Date.now(),
-        });
-        const timestamp =
-          typeof mvuCurrentTime === 'number' ? mvuCurrentTime : Number(mvuCurrentTime);
-        if (Number.isFinite(timestamp)) {
-          updateDisplay(timestamp);
-        }
-      } catch (error) {
-        console.warn('[HomePage] 监听当前时间失败', error);
-      }
-    });
-  } catch (error) {
-    console.warn('[HomePage] 设置当前时间监听失败', error);
-  }
-}
+  return `${month}月${day}日 · ${weekdays[date.getDay()]}`;
+});
 </script>
 
 <style lang="scss" scoped>

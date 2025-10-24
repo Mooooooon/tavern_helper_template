@@ -19,7 +19,7 @@
           </svg>
         </button>
       </template>
-      <template v-else-if="initialized">
+      <template v-else>
         <div class="profile">
           <CachedAvatar
             :src="userInfo.avatar"
@@ -52,7 +52,7 @@
     <main class="chat-content" :class="{ 'chat-content--conversation': !!activeConversation }">
       <slot></slot>
     </main>
-    <footer v-if="!activeConversation && initialized && activePage !== 'moments'" class="chat-footer">
+    <footer v-if="!activeConversation && activePage !== 'moments'" class="chat-footer">
       <nav>
         <button
           class="nav-item"
@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
 import { useUserStore } from '../../stores/userStore';
@@ -105,8 +105,6 @@ const chatStore = useChatStore();
 const userStore = useUserStore();
 
 const { userInfo } = storeToRefs(userStore);
-const initialized = ref(true); // 临时设为true，不阻塞显示
-
 // 根据当前活跃的页面来判断是否为消息页面
 const isMessagesActive = computed(() => {
   return props.activePage === 'messages' || (!props.activeConversationId && props.activePage !== 'contacts' && props.activePage !== 'moments');

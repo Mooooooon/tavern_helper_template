@@ -34,9 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import $ from 'jquery';
 import PhoneStatusBar from './PhoneStatusBar.vue';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 // 定义props和emits
 const props = defineProps<{
@@ -59,6 +58,32 @@ let initialLeft = 0;
 let initialTop = 0;
 let isTouchEvent = false;
 const dragThreshold = 5;
+const touchMoveOptions: AddEventListenerOptions = { passive: false };
+
+const handleMouseMove = (event: MouseEvent) => onDrag(event);
+const handleTouchMove = (event: TouchEvent) => onDrag(event);
+const handleMouseUp = () => stopDrag();
+const handleTouchEndInternal = () => stopDrag();
+
+function removeDragListeners() {
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', handleMouseUp);
+  document.removeEventListener('touchmove', handleTouchMove, touchMoveOptions);
+  document.removeEventListener('touchend', handleTouchEndInternal);
+  document.removeEventListener('touchcancel', handleTouchEndInternal);
+}
+
+function bindDragListeners(type: 'mouse' | 'touch') {
+  removeDragListeners();
+  if (type === 'touch') {
+    document.addEventListener('touchmove', handleTouchMove, touchMoveOptions);
+    document.addEventListener('touchend', handleTouchEndInternal);
+    document.addEventListener('touchcancel', handleTouchEndInternal);
+    return;
+  }
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+}
 
 // 开始拖动
 const startDrag = (e: MouseEvent | TouchEvent) => {
@@ -86,14 +111,7 @@ const startDrag = (e: MouseEvent | TouchEvent) => {
   initialLeft = phoneWrapperRef.value.offsetLeft;
   initialTop = phoneWrapperRef.value.offsetTop;
 
-  // 绑定全局移动和结束事件
-  if (isTouchEvent) {
-    $('body').on('touchmove', onDrag as any);
-    $('body').on('touchend', stopDrag as any);
-  } else {
-    $('body').on('mousemove', onDrag as any);
-    $('body').on('mouseup', stopDrag as any);
-  }
+  bindDragListeners(isTouchEvent ? 'touch' : 'mouse');
 };
 
 // 拖动中
@@ -125,9 +143,12 @@ const onDrag = (e: MouseEvent | TouchEvent) => {
 
 // 停止拖动
 const stopDrag = () => {
+  if (!isDragging) {
+    return;
+  }
+
   isDragging = false;
-  $('body').off('mousemove touchmove', onDrag as any);
-  $('body').off('mouseup touchend', stopDrag as any);
+  removeDragListeners();
 
   // 保存位置到 localStorage
   if (phoneWrapperRef.value) {
@@ -165,6 +186,10 @@ onMounted(() => {
     phoneWrapperRef.value.style.left = `${left}px`;
     phoneWrapperRef.value.style.top = `${top}px`;
   }
+});
+
+onBeforeUnmount(() => {
+  removeDragListeners();
 });
 
 // 路由滑动相关（用于返回主页的手势）
