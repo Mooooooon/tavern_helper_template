@@ -653,6 +653,15 @@ $(() => {
     refreshMvu: handleMvuVariableUpdate,
     refreshMvuSync: () => {
       void handleMvuVariableUpdate();
+    },
+    // 添加头像转换测试函数
+    testThumbnail: (url: string) => {
+      import('./utils/avatar').then(({ convertAvatarToThumbnail }) => {
+        const thumbnail = convertAvatarToThumbnail(url);
+        console.log('[Debug] 原始URL:', url);
+        console.log('[Debug] 缩略图URL:', thumbnail);
+        return thumbnail;
+      });
     }
   };
   console.log('[init] 调试函数已暴露到 window.__phoneDebug');

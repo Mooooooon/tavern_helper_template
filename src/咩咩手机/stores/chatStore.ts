@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { resolveAvatar } from '../utils/avatar';
+import { resolveAvatar, convertAvatarToThumbnail } from '../utils/avatar';
 
 type ChatLogEntry = {
   is_user?: boolean;
@@ -397,6 +397,11 @@ export const useChatStore = defineStore('chatStore', {
         const raw = info as ContactRaw;
         const avatar = resolveAvatar(raw.头像);
 
+        // 如果resolveAvatar返回undefined，对原始头像也进行缩略图转换
+        const finalAvatar = avatar ?? (
+          raw.头像 ? convertAvatarToThumbnail(raw.头像) : undefined
+        );
+
         const contact: ContactRecord = {
           key: contactName,
           displayName:
@@ -405,7 +410,7 @@ export const useChatStore = defineStore('chatStore', {
               : contactName,
           signature: typeof raw.签名 === 'string' ? raw.签名 : '',
           avatarSource: raw.头像,
-          avatar: avatar ?? undefined,
+          avatar: finalAvatar,
           chatLog: normalizeChatLog(raw.聊天记录),
           dynamics: Array.isArray(raw.空间动态) ? raw.空间动态 : [],
         };

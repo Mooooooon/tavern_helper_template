@@ -4,7 +4,7 @@
     :x="currentX"
     :y="currentY"
     :z="1000"
-    :drag-handle="''"
+    drag-handle="drag-handle"
     @dragging="handleDrag"
     @dragstop="handleDragStop"
   >

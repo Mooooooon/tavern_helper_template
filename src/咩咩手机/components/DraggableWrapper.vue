@@ -84,6 +84,15 @@ function handleMouseDown(event: MouseEvent) {
     return;
   }
 
+  // 如果指定了拖动句柄，检查鼠标是否在句柄元素内
+  if (props.dragHandle) {
+    const target = event.target as HTMLElement;
+    const dragHandleElement = target.closest(`.${props.dragHandle}`);
+    if (!dragHandleElement) {
+      return; // 点击不在拖动句柄内，不启动拖动
+    }
+  }
+
   startX = event.clientX;
   startY = event.clientY;
   originalLeft = localPosition.left;

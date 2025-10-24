@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { preloadAvatar, resolveAvatar } from '../utils/avatar';
+import { preloadAvatar, resolveAvatar, convertAvatarToThumbnail } from '../utils/avatar';
 
 declare const triggerSlash: (command: string) => Promise<string>;
 
@@ -76,13 +76,15 @@ export const useUserStore = defineStore('userStore', {
           if (resolved && resolved !== 'undefined') {
             avatarSrc = resolved;
           } else if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
-            avatarSrc = avatarPath;
+            // 直接使用原始路径时也转换为缩略图
+            avatarSrc = convertAvatarToThumbnail(avatarPath);
           }
         }
 
         if (!avatarSrc) {
           avatarSource = avatarSource ?? 'char';
-          avatarSrc = resolveAvatar('char') ?? avatarSrc;
+          const resolvedChar = resolveAvatar('char');
+          avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : avatarSrc;
         }
 
         const shouldUpdate =
