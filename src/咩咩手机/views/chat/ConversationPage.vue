@@ -239,16 +239,19 @@ function goBack() {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  width: 100%;
 }
 
 .friend-content {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  max-width: 75%;
 }
 
 .friend-content--single {
   gap: 2px;
+  max-width: 75%;
 }
 
 .friend-content--single .friend-bubble {
@@ -263,7 +266,7 @@ function goBack() {
 }
 
 .friend-bubble {
-  max-width: 72%;
+  max-width: calc(100vw - 120px);
   background: #ffffff;
   color: #1f1f1f;
   border-radius: 14px;
@@ -289,11 +292,10 @@ function goBack() {
   align-items: flex-start;
   gap: 6px;
   margin-left: auto;
-  max-width: 82%;
+  max-width: 100%;
 }
 
 .bubble {
-  max-width: 72%;
   background: #3a73ff;
   color: #f8fbff;
   border-radius: 16px;
@@ -302,6 +304,10 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.bubble--me {
+  max-width: 75%;
 }
 
 .avatar--me {
