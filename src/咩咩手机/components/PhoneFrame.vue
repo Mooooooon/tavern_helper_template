@@ -1,9 +1,12 @@
 <template>
-  <div
-    ref="phoneWrapperRef"
+  <DraggableWrapper
     class="phone-wrapper"
-    @mousedown="startDrag"
-    @touchstart="startDrag"
+    :x="currentX"
+    :y="currentY"
+    :z="1000"
+    :drag-handle="''"
+    @dragging="handleDrag"
+    @dragstop="handleDragStop"
   >
     <div class="phone-container">
       <div class="phone-frame">
@@ -14,10 +17,8 @@
 
         <div
           class="phone-frame__inner"
-          @touchstart.passive="handleTouchStart"
-          @touchend="handleRouteTouchEnd"
         >
-          <div ref="dragHandleRef" class="drag-handle">
+          <div class="drag-handle">
             <PhoneStatusBar
               :current-page="currentPage"
               :status-bar-color="statusBarColor"
@@ -30,14 +31,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </DraggableWrapper>
 </template>
 
 <script setup lang="ts">
+import DraggableWrapper from './DraggableWrapper.vue';
 import PhoneStatusBar from './PhoneStatusBar.vue';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
-// 定义props和emits
 const props = defineProps<{
   currentPage?: string
   statusBarColor?: string
@@ -47,189 +48,88 @@ const emit = defineEmits<{
   navigate: [page: string]
 }>();
 
-// 拖动相关
-const phoneWrapperRef = ref<HTMLElement>();
-const dragHandleRef = ref<HTMLElement>();
+type DragRect = {
+  left: number
+  top: number
+  width: number
+  height: number
+};
 
-let isDragging = false;
-let startX = 0;
-let startY = 0;
-let initialLeft = 0;
-let initialTop = 0;
-let isTouchEvent = false;
-const dragThreshold = 5;
-const touchMoveOptions: AddEventListenerOptions = { passive: false };
+const DEFAULT_MARGIN = 20;
+const MAX_PHONE_WIDTH = 390;
 
-const handleMouseMove = (event: MouseEvent) => onDrag(event);
-const handleTouchMove = (event: TouchEvent) => onDrag(event);
-const handleMouseUp = () => stopDrag();
-const handleTouchEndInternal = () => stopDrag();
+const position = ref({
+  left: DEFAULT_MARGIN,
+  top: DEFAULT_MARGIN,
+});
 
-function removeDragListeners() {
-  document.removeEventListener('mousemove', handleMouseMove);
-  document.removeEventListener('mouseup', handleMouseUp);
-  document.removeEventListener('touchmove', handleTouchMove, touchMoveOptions);
-  document.removeEventListener('touchend', handleTouchEndInternal);
-  document.removeEventListener('touchcancel', handleTouchEndInternal);
+const currentX = computed(() => position.value.left);
+const currentY = computed(() => position.value.top);
+
+function getEffectivePhoneWidth(): number {
+  const viewportWidth = window.innerWidth;
+  const minGap = DEFAULT_MARGIN * 2;
+  return Math.min(MAX_PHONE_WIDTH, Math.max(0, viewportWidth - minGap));
 }
 
-function bindDragListeners(type: 'mouse' | 'touch') {
-  removeDragListeners();
-  if (type === 'touch') {
-    document.addEventListener('touchmove', handleTouchMove, touchMoveOptions);
-    document.addEventListener('touchend', handleTouchEndInternal);
-    document.addEventListener('touchcancel', handleTouchEndInternal);
-    return;
-  }
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
+function getInitialPosition() {
+  const width = getEffectivePhoneWidth();
+  const viewportWidth = window.innerWidth || width;
+  const left = Math.max(DEFAULT_MARGIN, (viewportWidth - width) / 2);
+  const top = DEFAULT_MARGIN;
+  return { left, top };
 }
 
-// 开始拖动
-const startDrag = (e: MouseEvent | TouchEvent) => {
-  if (!phoneWrapperRef.value || !dragHandleRef.value) return;
+function applyPosition(next: { left?: number; top?: number }) {
+  position.value = {
+    left: typeof next.left === 'number' ? next.left : position.value.left,
+    top: typeof next.top === 'number' ? next.top : position.value.top,
+  };
+}
 
-  // 只在拖动手柄区域才能拖动
-  const target = e.target as HTMLElement;
-  if (!dragHandleRef.value.contains(target)) {
-    return;
-  }
+function handleDrag(rect: DragRect) {
+  applyPosition({ left: rect.left, top: rect.top });
+}
 
-  e.preventDefault();
-  isDragging = true;
-  isTouchEvent = e.type === 'touchstart';
+function handleDragStop(rect: DragRect) {
+  handleDrag(rect);
+  localStorage.setItem('phone-position', JSON.stringify({
+    left: rect.left,
+    top: rect.top,
+  }));
+}
 
-  // 获取起始坐标
-  if (isTouchEvent && 'touches' in e && e.touches.length > 0) {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  } else if ('clientX' in e) {
-    startX = e.clientX;
-    startY = e.clientY;
-  }
-
-  initialLeft = phoneWrapperRef.value.offsetLeft;
-  initialTop = phoneWrapperRef.value.offsetTop;
-
-  bindDragListeners(isTouchEvent ? 'touch' : 'mouse');
-};
-
-// 拖动中
-const onDrag = (e: MouseEvent | TouchEvent) => {
-  if (!isDragging || !phoneWrapperRef.value) return;
-
-  let currentX, currentY;
-  if (isTouchEvent && 'touches' in e && e.touches.length > 0) {
-    currentX = e.touches[0].clientX;
-    currentY = e.touches[0].clientY;
-  } else if ('clientX' in e) {
-    currentX = e.clientX;
-    currentY = e.clientY;
-  } else {
-    return;
-  }
-
-  const dx = currentX - startX;
-  const dy = currentY - startY;
-
-  // 超过阈值才移动
-  if (Math.abs(dx) > dragThreshold || Math.abs(dy) > dragThreshold) {
-    phoneWrapperRef.value.style.left = `${initialLeft + dx}px`;
-    phoneWrapperRef.value.style.top = `${initialTop + dy}px`;
-  }
-
-  e.preventDefault();
-};
-
-// 停止拖动
-const stopDrag = () => {
-  if (!isDragging) {
-    return;
-  }
-
-  isDragging = false;
-  removeDragListeners();
-
-  // 保存位置到 localStorage
-  if (phoneWrapperRef.value) {
-    const position = {
-      left: phoneWrapperRef.value.offsetLeft,
-      top: phoneWrapperRef.value.offsetTop,
-    };
-    localStorage.setItem('phone-position', JSON.stringify(position));
-  }
-};
-
-// 初始化位置
 onMounted(() => {
-  if (phoneWrapperRef.value) {
-    // 尝试从 localStorage 读取保存的位置
-    const savedPosition = localStorage.getItem('phone-position');
-    let left, top;
+  const savedPosition = localStorage.getItem('phone-position');
+  let initial = getInitialPosition();
 
-    if (savedPosition) {
-      try {
-        const position = JSON.parse(savedPosition);
-        left = position.left;
-        top = position.top;
-      } catch {
-        // 解析失败则使用默认位置
-        left = Math.max(20, (window.innerWidth - 390) / 2);
-        top = 20;
-      }
-    } else {
-      // 没有保存的位置，使用默认居中位置
-      left = Math.max(20, (window.innerWidth - 390) / 2);
-      top = 20;
+  if (savedPosition) {
+    try {
+      const parsed = JSON.parse(savedPosition) as { left?: number; top?: number };
+      initial = {
+        left: typeof parsed.left === 'number' ? parsed.left : initial.left,
+        top: typeof parsed.top === 'number' ? parsed.top : initial.top,
+      };
+    } catch {
+      // Ignore malformed data and fall back to the default position
     }
-
-    phoneWrapperRef.value.style.left = `${left}px`;
-    phoneWrapperRef.value.style.top = `${top}px`;
-  }
-});
-
-onBeforeUnmount(() => {
-  removeDragListeners();
-});
-
-// 路由滑动相关（用于返回主页的手势）
-let routeStartX = 0;
-let routeStartY = 0;
-let touchStartTime = 0;
-
-function handleTouchStart(event: TouchEvent) {
-  const touch = event.touches[0];
-  routeStartX = touch.clientX;
-  routeStartY = touch.clientY;
-  touchStartTime = Date.now();
-}
-
-function handleRouteTouchEnd(event: TouchEvent) {
-  if (props.currentPage === 'home') {
-    return;
   }
 
-  const touch = event.changedTouches[0];
-  const deltaX = touch.clientX - routeStartX;
-  const deltaY = touch.clientY - routeStartY;
-  const duration = Date.now() - touchStartTime;
+  applyPosition(initial);
+});
 
-  if (duration > 600) return;
-  if (Math.abs(deltaY) > 80) return;
-  if (Math.abs(deltaX) < 70) return;
-
-  emit('navigate', '/');
-}
+// 暂时禁用滑动返回主页功能，避免与拖拽冲突
+// TODO: 实现更好的手势处理机制
 </script>
 
 <style lang="scss" scoped>
 .phone-wrapper {
-  position: fixed;
+  position: fixed !important;
   background: transparent;
-  pointer-events: none; // 允许点击穿透
   z-index: 1000;
   width: min(390px, calc(100vw - 32px));
   max-width: 390px;
+  pointer-events: auto;
 }
 
 .phone-container {
@@ -241,7 +141,7 @@ function handleRouteTouchEnd(event: TouchEvent) {
   align-items: stretch;
   flex-shrink: 0;
   filter: drop-shadow(0 24px 38px rgba(12, 20, 38, 0.32));
-  pointer-events: auto; // 恢复手机本身的点击交互
+  pointer-events: auto;
 }
 
 .phone-container::before,
@@ -283,6 +183,7 @@ function handleRouteTouchEnd(event: TouchEvent) {
 .drag-handle {
   cursor: move;
   user-select: none;
+  pointer-events: auto;
   opacity: 1 !important;
   filter: none !important;
 }
@@ -350,6 +251,4 @@ function handleRouteTouchEnd(event: TouchEvent) {
   box-sizing: border-box;
   overflow: hidden;
 }
-
-
 </style>

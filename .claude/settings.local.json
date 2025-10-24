@@ -12,7 +12,15 @@
       "mcp__browsermcp__browser_navigate",
       "mcp__browsermcp__browser_hover",
       "Bash(git push:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(pnpm list:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm remove:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
