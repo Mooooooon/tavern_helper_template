@@ -250,6 +250,56 @@ function injectBaseStyle(target: ShadowRoot) {
 let vueApp: App | null = null;
 let isPhoneVisible = false;
 
+function isPhoneMounted(): boolean {
+  return Boolean(vueApp && shadowHost && shadowAppContainer);
+}
+
+function updatePhoneVisibility(visible: boolean): void {
+  if (!shadowHost || !shadowAppContainer) {
+    return;
+  }
+  const displayValue = visible ? 'block' : 'none';
+  shadowHost.style.display = displayValue;
+  shadowAppContainer.style.display = displayValue;
+}
+
+function showPhoneUI(): void {
+  if (initPromise) {
+    console.log('手机UI正在初始化，请稍候...');
+    return;
+  }
+
+  if (!isPhoneMounted()) {
+    void initPhoneUI();
+    return;
+  }
+
+  if (isPhoneVisible) {
+    console.log('手机UI已显示，无需重复操作');
+    return;
+  }
+
+  updatePhoneVisibility(true);
+  isPhoneVisible = true;
+  toastr.success('手机UI已显示');
+}
+
+function hidePhoneUI(): void {
+  if (!isPhoneMounted()) {
+    console.log('手机UI未初始化或已销毁，无法隐藏');
+    return;
+  }
+
+  if (!isPhoneVisible) {
+    console.log('手机UI已隐藏，无需重复操作');
+    return;
+  }
+
+  updatePhoneVisibility(false);
+  isPhoneVisible = false;
+  toastr.info('手机UI已隐藏');
+}
+
 // 初始化手机UI
 async function initPhoneUI(): Promise<void> {
   if (vueApp) {
@@ -347,6 +397,7 @@ async function initPhoneUI(): Promise<void> {
       console.log(`  - ${key}`);
     });
 
+    updatePhoneVisibility(true);
     isPhoneVisible = true;
     toastr.success('手机UI已打开');
   })().catch(error => {
@@ -378,7 +429,7 @@ async function initPhoneUI(): Promise<void> {
 }
 
 // 销毁手机UI
-function destroyPhoneUI() {
+function destroyPhoneUI(reason?: string) {
   if (initPromise) {
     console.log('手机UI正在初始化，暂时无法销毁');
     return;
@@ -389,7 +440,7 @@ function destroyPhoneUI() {
     return;
   }
 
-  console.log('开始销毁手机UI');
+  console.log('开始销毁手机UI', reason ? `原因: ${reason}` : '');
 
   // 保护缓存 - 在销毁前记录缓存状态
   const cacheBeforeDestroy = window.__phoneAvatarCache;
@@ -397,6 +448,7 @@ function destroyPhoneUI() {
   console.log(`[destroyPhoneUI] 销毁前缓存状态: ${cacheSize} 个头像`);
 
   try {
+    updatePhoneVisibility(false);
     if (vueApp) {
       vueApp.unmount();
       vueApp = null;
@@ -415,7 +467,7 @@ function destroyPhoneUI() {
     console.log(`[destroyPhoneUI] 销毁完成，缓存保持: ${window.__phoneAvatarCache?.size || 0} 个头像`);
 
     isPhoneVisible = false;
-    toastr.info('手机UI已关闭');
+    toastr.info(reason ? `手机UI已关闭（${reason}）` : '手机UI已关闭');
   } catch (e) {
     console.error('销毁手机UI时出错:', e);
   }
@@ -425,17 +477,21 @@ function destroyPhoneUI() {
 function togglePhoneUI() {
   console.log('togglePhoneUI 被调用，当前状态:', isPhoneVisible, '初始化中:', Boolean(initPromise));
 
-  if (isPhoneVisible) {
-    destroyPhoneUI();
-    return;
-  }
-
   if (initPromise) {
     console.log('手机UI正在初始化，请稍候...');
     return;
   }
 
-  void initPhoneUI();
+  if (!isPhoneMounted()) {
+    void initPhoneUI();
+    return;
+  }
+
+  if (isPhoneVisible) {
+    hidePhoneUI();
+  } else {
+    showPhoneUI();
+  }
 }
 
 // 初始化全局缓存
@@ -487,6 +543,24 @@ $(() => {
   });
   console.log('按钮事件已绑定');
 
+  const destroyEventConfigs = [
+    { event: tavern_events.CHAT_CHANGED, reason: '聊天切换' },
+    { event: tavern_events.CHARACTER_PAGE_LOADED, reason: '角色卡切换' },
+    { event: tavern_events.CHAT_DELETED, reason: '聊天已删除' },
+    { event: tavern_events.GROUP_CHAT_DELETED, reason: '群聊已删除' },
+  ] as const;
+
+  destroyEventConfigs.forEach(({ event, reason }) => {
+    eventOn(event, () => {
+      console.log(`[咩咩手机] 监听到事件 ${String(event)}，准备销毁手机UI`);
+      if (initPromise) {
+        initPromise.finally(() => destroyPhoneUI(reason));
+        return;
+      }
+      destroyPhoneUI(reason);
+    });
+  });
+
   toastr.success('咩咩手机脚本已加载');
 
   // 暴露调试函数到全局
@@ -504,11 +578,11 @@ $(window).on('pagehide', () => {
   try {
     if (initPromise) {
       initPromise.finally(() => {
-        destroyPhoneUI();
+        destroyPhoneUI('页面卸载');
       });
       return;
     }
-    destroyPhoneUI();
+    destroyPhoneUI('页面卸载');
   } catch (e) {
     console.error('卸载时清理出错:', e);
   }
