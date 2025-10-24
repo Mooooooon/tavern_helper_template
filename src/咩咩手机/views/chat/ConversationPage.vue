@@ -312,9 +312,7 @@ function goBack() {
 .text {
   margin: 0;
   font-size: 14px;
-  line-height: 1.3;
-  display: inline;
-  white-space: nowrap;
+  line-height: 1.45;
 }
 
 .composer {
