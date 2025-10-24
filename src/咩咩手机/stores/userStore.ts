@@ -65,6 +65,12 @@ export const useUserStore = defineStore('userStore', {
         return;
       }
 
+      // 如果已有头像，不重复加载
+      if (this.userAvatar && this.userAvatarSource) {
+        console.log('[userStore] 用户头像已存在，跳过重复加载');
+        return;
+      }
+
       try {
         let avatarSrc: string | undefined;
         let avatarSource: string | undefined;
@@ -72,34 +78,40 @@ export const useUserStore = defineStore('userStore', {
         if (typeof triggerSlash === 'function') {
           const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
           avatarSource = avatarPath; // 保存原始源用于比较
-          const resolved = resolveAvatar(avatarPath);
-          if (resolved && resolved !== 'undefined') {
-            avatarSrc = resolved;
-          } else if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
-            // 直接使用原始路径时也转换为缩略图
+
+          if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
+            // 直接使用原始路径转换为缩略图
+            console.log('[userStore] 获取到用户头像路径，转换为缩略图:', avatarPath);
             avatarSrc = convertAvatarToThumbnail(avatarPath);
+          } else {
+            // 如果没有获取到用户头像路径，尝试使用角色头像
+            console.log('[userStore] 未获取到用户头像路径，尝试使用角色头像');
+            const resolvedChar = resolveAvatar('char');
+            avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
           }
         }
 
+        // 如果通过triggerSlash没有获取到头像，尝试使用char头像
         if (!avatarSrc) {
-          avatarSource = avatarSource ?? 'char';
+          console.log('[userStore] 主要方法失败，使用char头像作为备用');
+          avatarSource = 'char';
           const resolvedChar = resolveAvatar('char');
-          avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : avatarSrc;
+          avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
         }
 
-        const shouldUpdate =
-          avatarSrc &&
-          (avatarSource !== this.userAvatarSource || avatarSrc !== this.userAvatar);
+        // 严格检查是否需要更新
+        const shouldUpdate = avatarSrc &&
+          (!this.userAvatar || !this.userAvatarSource ||
+           avatarSource !== this.userAvatarSource || avatarSrc !== this.userAvatar);
 
         if (shouldUpdate && avatarSrc) {
+          console.log('[userStore] 更新用户头像:', { avatarSrc, avatarSource });
           // 只有在真正需要更新时才预加载
           await preloadAvatar(avatarSrc);
           this.userAvatar = avatarSrc;
           this.userAvatarSource = avatarSource || '';
-        } else if (avatarSrc && !this.userAvatar) {
-          // 首次设置头像时不重复预加载（因为可能已经缓存了）
-          this.userAvatar = avatarSrc;
-          this.userAvatarSource = avatarSource || '';
+        } else {
+          console.log('[userStore] 用户头像无需更新，跳过');
         }
       } catch (error) {
         console.warn('[userStore] 获取用户头像失败', error);

@@ -1,4 +1,6 @@
 const avatarCache = new Map<string, boolean>();
+const thumbnailCache = new Map<string, string>();
+const resolveCache = new Map<string, string | undefined>();
 
 type CharAvatarGetter = (character: string, cache?: boolean) => string | undefined;
 
@@ -35,46 +37,72 @@ function toCharKey(source?: string): string | undefined {
 }
 
 /**
- * 将原始头像URL转换为缩略图URL
+ * 将原始头像URL转换为缩略图URL（使用SillyTavern官方API）
  * @param originalUrl 原始头像URL
  * @returns 缩略图URL或原始URL
+ *
+ * 说明：
+ * - 用户头像(/User%20Avatars/)使用 'persona' 类型
+ * - 角色头像(/characters/)使用 'avatar' 类型
+ * - 支持中文文件名，自动进行URL解码
+ * - 使用SillyTavern.getThumbnailUrl()官方API
  */
 function convertToThumbnailUrl(originalUrl: string): string {
+  // 检查缓存
+  if (thumbnailCache.has(originalUrl)) {
+    console.log('[avatar] 使用缓存的缩略图URL:', originalUrl);
+    return thumbnailCache.get(originalUrl)!;
+  }
+
   try {
-    const url = new URL(originalUrl);
+    // 使用SillyTavern官方API获取缩略图
+    if (typeof SillyTavern !== 'undefined' && SillyTavern.getThumbnailUrl) {
+      let thumbnailType: string;
+      let fileName: string;
 
-    // 解析路径确定类型
-    const pathname = url.pathname;
-
-    if (pathname.includes('/User%20Avatars/')) {
-      // 用户头像
-      const fileName = pathname.split('/User%20Avatars/')[1];
-      if (fileName) {
-        const thumbnailUrl = `${url.protocol}//${url.host}/thumbnail?type=avatar&file=${encodeURIComponent(fileName)}`;
-        console.log('[avatar] 用户头像转换:', {
-          original: originalUrl,
-          thumbnail: thumbnailUrl
-        });
-        return thumbnailUrl;
+      // 解析URL确定类型和文件名
+      if (originalUrl.includes('/User%20Avatars/')) {
+        thumbnailType = 'persona'; // 用户头像使用persona类型
+        fileName = originalUrl.split('/User%20Avatars/')[1];
+      } else if (originalUrl.includes('/characters/')) {
+        thumbnailType = 'avatar'; // 角色头像使用avatar类型
+        fileName = originalUrl.split('/characters/')[1];
+      } else {
+        // 如果不匹配转换条件，返回原始URL
+        console.log('[avatar] 头像无需转换:', originalUrl);
+        thumbnailCache.set(originalUrl, originalUrl);
+        return originalUrl;
       }
-    } else if (pathname.includes('/characters/')) {
-      // 角色头像
-      const fileName = pathname.split('/characters/')[1];
+
       if (fileName) {
-        const thumbnailUrl = `${url.protocol}//${url.host}/thumbnail?type=persona&file=${encodeURIComponent(fileName)}`;
-        console.log('[avatar] 角色头像转换:', {
+        // 解码文件名，因为从URL路径中提取的文件名可能是URL编码的
+        try {
+          fileName = decodeURIComponent(fileName);
+        } catch (error) {
+          console.warn('[avatar] 文件名解码失败，使用原始文件名:', error);
+        }
+
+        const thumbnailUrl = SillyTavern.getThumbnailUrl(thumbnailType, fileName);
+        console.log('[avatar] 使用官方API转换头像:', {
           original: originalUrl,
+          type: thumbnailType,
+          file: fileName,
           thumbnail: thumbnailUrl
         });
+
+        // 缓存结果
+        thumbnailCache.set(originalUrl, thumbnailUrl);
         return thumbnailUrl;
       }
     }
 
-    // 如果不匹配转换条件，返回原始URL
-    console.log('[avatar] 头像无需转换:', originalUrl);
+    // 如果官方API不可用，直接返回原始URL
+    console.warn('[avatar] SillyTavern.getThumbnailUrl API不可用，返回原始URL');
+    thumbnailCache.set(originalUrl, originalUrl);
     return originalUrl;
   } catch (error) {
     console.warn('[avatar] 缩略图URL转换失败:', error);
+    thumbnailCache.set(originalUrl, originalUrl);
     return originalUrl;
   }
 }
@@ -84,27 +112,40 @@ export function resolveAvatar(source?: string): string | undefined {
     return undefined;
   }
 
+  // 检查解析缓存
+  if (resolveCache.has(source)) {
+    console.log('[avatar] 使用缓存的解析结果:', source);
+    return resolveCache.get(source);
+  }
+
   const charKey = toCharKey(source);
+  let finalUrl: string | undefined;
+
   if (!charKey) {
     // 如果不是char前缀，也尝试转换为缩略图
-    return convertToThumbnailUrl(source);
+    finalUrl = convertToThumbnailUrl(source);
+  } else {
+    const getter = getCharAvatarGetter();
+    if (!getter) {
+      resolveCache.set(source, undefined);
+      return undefined;
+    }
+
+    try {
+      const resolved = getter(charKey, true);
+      finalUrl = resolved || undefined;
+
+      // 将解析后的URL转换为缩略图
+      finalUrl = finalUrl ? convertToThumbnailUrl(finalUrl) : undefined;
+    } catch (error) {
+      console.warn(`[avatar] 获取角色卡头像失败(${charKey}):`, error);
+      finalUrl = undefined;
+    }
   }
 
-  const getter = getCharAvatarGetter();
-  if (!getter) {
-    return undefined;
-  }
-
-  try {
-    const resolved = getter(charKey, true);
-    const finalUrl = resolved || undefined;
-
-    // 将解析后的URL转换为缩略图
-    return finalUrl ? convertToThumbnailUrl(finalUrl) : undefined;
-  } catch (error) {
-    console.warn(`[avatar] 获取角色卡头像失败(${charKey}):`, error);
-    return undefined;
-  }
+  // 缓存解析结果
+  resolveCache.set(source, finalUrl);
+  return finalUrl;
 }
 
 export function preloadAvatar(src?: string): Promise<void> {
@@ -141,4 +182,7 @@ export function convertAvatarToThumbnail(originalUrl: string): string {
 
 export function clearAvatarCache(): void {
   avatarCache.clear();
+  thumbnailCache.clear();
+  resolveCache.clear();
+  console.log('[avatar] 所有缓存已清理');
 }

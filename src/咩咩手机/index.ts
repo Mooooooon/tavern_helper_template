@@ -99,17 +99,17 @@ function getGlobalAvatarCache(): Map<string, boolean> {
   return window.__phoneAvatarCache;
 }
 
-// 全局头像预加载函数 - 简化版本
+// 全局头像预加载函数 - 优化版本
 async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> {
+  const cache = getGlobalAvatarCache();
   const avatarUrls = new Set<string>();
+  const newAvatarUrls = new Set<string>();
 
-  // 添加用户头像（如果存在）
+  // 收集所有头像URL
   if (userStore.userInfo?.avatar) {
     avatarUrls.add(userStore.userInfo.avatar);
-    console.log('[preloadAllAvatars] 添加用户头像:', userStore.userInfo.avatar);
   }
 
-  // 添加所有联系人的头像
   if (chatStore.messageSummaries) {
     chatStore.messageSummaries.forEach((summary: any) => {
       if (summary.avatar) {
@@ -118,7 +118,6 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
     });
   }
 
-  // 如果还有联系人列表，也添加
   if (chatStore.contactList) {
     Object.values(chatStore.contactList).forEach((contact: any) => {
       if (contact.avatar) {
@@ -127,17 +126,22 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
     });
   }
 
-  const cache = getGlobalAvatarCache();
-
-  // 并行预加载所有头像，使用全局缓存
-  const preloadPromises = Array.from(avatarUrls).map(url => {
-    // 如果已经缓存，跳过
-    if (cache.has(url)) {
-      console.log(`[preloadAllAvatars] 头像已在缓存中，跳过: ${url}`);
-      return Promise.resolve();
+  // 筛选出需要预加载的新头像
+  avatarUrls.forEach(url => {
+    if (!cache.has(url)) {
+      newAvatarUrls.add(url);
     }
+  });
 
-    // 创建新的加载Promise
+  if (newAvatarUrls.size === 0) {
+    console.log('[preloadAllAvatars] 没有新的头像需要预加载');
+    return;
+  }
+
+  console.log(`[preloadAllAvatars] 开始预加载 ${newAvatarUrls.size} 个新头像`);
+
+  // 并行预加载新头像
+  const preloadPromises = Array.from(newAvatarUrls).map(url => {
     return new Promise<void>((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -147,7 +151,8 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
       };
       img.onerror = () => {
         console.warn(`[preloadAllAvatars] 头像预加载失败: ${url}`);
-        resolve(); // 即使失败也继续
+        cache.set(url, false); // 标记为失败，避免重复尝试
+        resolve();
       };
       img.src = url;
     });
@@ -155,7 +160,7 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
 
   try {
     await Promise.all(preloadPromises);
-    console.log(`[preloadAllAvatars] 预加载完成，共处理 ${avatarUrls.size} 个头像`);
+    console.log(`[preloadAllAvatars] 预加载完成，共处理 ${newAvatarUrls.size} 个新头像`);
   } catch (error) {
     console.warn('[preloadAllAvatars] 部分头像预加载失败:', error);
   }
@@ -506,11 +511,17 @@ function initGlobalCache(): void {
 
 // 调试函数：手动清理缓存（仅用于调试）
 function clearAvatarCache(): void {
-  if (window.__phoneAvatarCache) {
-    const size = window.__phoneAvatarCache.size;
-    window.__phoneAvatarCache.clear();
+  const cache = window.__phoneAvatarCache;
+  if (cache) {
+    const size = cache.size;
+    cache.clear();
     console.log(`[clearAvatarCache] 手动清理了 ${size} 个头像缓存`);
   }
+
+  // 同时清理avatar.ts中的缓存
+  import('./utils/avatar').then(({ clearAvatarCache: clearUtilCache }) => {
+    clearUtilCache();
+  });
 }
 
 // 调试函数：显示缓存状态
@@ -525,50 +536,114 @@ function showCacheStatus(): void {
   }
 }
 
+// 检查是否有新的头像需要预加载
+async function checkForNewAvatars(userStore: any, chatStore: any): Promise<boolean> {
+  const cache = getGlobalAvatarCache();
+  const newAvatarUrls = new Set<string>();
+
+  // 检查用户头像
+  if (userStore.userInfo?.avatar && !cache.has(userStore.userInfo.avatar)) {
+    newAvatarUrls.add(userStore.userInfo.avatar);
+  }
+
+  // 检查联系人头像
+  if (chatStore.messageSummaries) {
+    chatStore.messageSummaries.forEach((summary: any) => {
+      if (summary.avatar && !cache.has(summary.avatar)) {
+        newAvatarUrls.add(summary.avatar);
+      }
+    });
+  }
+
+  // 检查联系人列表中的头像
+  if (chatStore.contactList) {
+    Object.values(chatStore.contactList).forEach((contact: any) => {
+      if (contact.avatar && !cache.has(contact.avatar)) {
+        newAvatarUrls.add(contact.avatar);
+      }
+    });
+  }
+
+  if (newAvatarUrls.size > 0) {
+    console.log(`[checkForNewAvatars] 发现 ${newAvatarUrls.size} 个新头像需要预加载`);
+    return true;
+  }
+
+  return false;
+}
+
+// 防抖机制
+let mvuUpdateDebounce: Timer | null = null;
+let isMvuUpdating = false;
+
 // MVU变量更新后重新读取聊天记录和动态
 async function handleMvuVariableUpdate(): Promise<void> {
   if (!vueApp) {
     return; // 手机UI未初始化，跳过处理
   }
 
-  try {
-    console.log('[咩咩手机] MVU变量更新，开始重新读取数据');
-
-    // 等待MVU初始化
-    await waitGlobalInitialized('Mvu');
-
-    // 获取chatStore实例并重新读取数据
-    const { useChatStore } = await import('./stores/chatStore');
-    const chatStore = useChatStore();
-
-    // 重新从MVU读取数据
-    await chatStore.refreshFromMvu();
-
-    console.log('[咩咩手机] 数据重新读取完成');
-
-    // 如果需要，可以触发重新预加载头像
-    const { useUserStore } = await import('./stores/userStore');
-    const userStore = useUserStore();
-    await preloadAllAvatars(userStore, chatStore);
-
-    // 强制触发Vue组件更新
-    vueApp.config.globalProperties.$forceUpdate?.();
-
-    // 使用暴露的强制更新函数
-    try {
-      if (typeof (window as any).__phoneAppForceUpdate === 'function') {
-        (window as any).__phoneAppForceUpdate();
-      }
-    } catch (e) {
-      console.log('[咩咩手机] 调用强制更新函数失败:', e);
-    }
-
-    toastr.success('手机数据已刷新');
-
-  } catch (error) {
-    console.error('[咩咩手机] MVU变量更新处理失败:', error);
-    toastr.error('数据刷新失败');
+  // 如果正在更新中，跳过
+  if (isMvuUpdating) {
+    console.log('[咩咩手机] MVU更新正在进行中，跳过重复请求');
+    return;
   }
+
+  // 防抖处理
+  if (mvuUpdateDebounce) {
+    clearTimeout(mvuUpdateDebounce);
+  }
+
+  mvuUpdateDebounce = setTimeout(async () => {
+    try {
+      isMvuUpdating = true;
+      console.log('[咩咩手机] MVU变量更新，开始重新读取数据');
+
+      // 等待MVU初始化
+      await waitGlobalInitialized('Mvu');
+
+      // 获取chatStore实例并重新读取数据
+      const { useChatStore } = await import('./stores/chatStore');
+      const chatStore = useChatStore();
+
+      // 重新从MVU读取数据
+      await chatStore.refreshFromMvu();
+
+      console.log('[咩咩手机] 数据重新读取完成');
+
+      // 只在必要时触发重新预加载头像
+      const { useUserStore } = await import('./stores/userStore');
+      const userStore = useUserStore();
+
+      // 检查是否有新的头像需要预加载
+      const hasNewAvatars = await checkForNewAvatars(userStore, chatStore);
+      if (hasNewAvatars) {
+        console.log('[咩咩手机] 发现新头像，开始预加载');
+        await preloadAllAvatars(userStore, chatStore);
+      } else {
+        console.log('[咩咩手机] 没有新头像，跳过预加载');
+      }
+
+      // 强制触发Vue组件更新
+      vueApp.config.globalProperties.$forceUpdate?.();
+
+      // 使用暴露的强制更新函数
+      try {
+        if (typeof (window as any).__phoneAppForceUpdate === 'function') {
+          (window as any).__phoneAppForceUpdate();
+        }
+      } catch (e) {
+        console.log('[咩咩手机] 调用强制更新函数失败:', e);
+      }
+
+      toastr.success('手机数据已刷新');
+
+    } catch (error) {
+      console.error('[咩咩手机] MVU变量更新处理失败:', error);
+      toastr.error('数据刷新失败');
+    } finally {
+      isMvuUpdating = false;
+    }
+  }, 500); // 500ms防抖延迟
 }
 
 // 加载时注册事件
@@ -618,23 +693,32 @@ $(() => {
   });
 
   // 注册MVU变量更新事件监听
+  let mvuListenerRegistered = false;
+
   try {
     // 等待MVU框架初始化
     waitGlobalInitialized('Mvu').then(() => {
+      if (mvuListenerRegistered) {
+        console.log('[咩咩手机] MVU事件监听器已注册，跳过重复注册');
+        return;
+      }
+
       console.log('[咩咩手机] MVU框架已初始化，注册变量更新事件监听');
 
-      // 监听MVU变量更新结束事件
-      eventOn('MvuVariableUpdateEnded', () => {
-        console.log('[咩咩手机] 监听到MVU变量更新事件');
-        void handleMvuVariableUpdate();
-      });
-
-      // 备用方案：直接使用Mvu的事件常量
+      // 优先使用Mvu的官方事件常量
       if (typeof Mvu !== 'undefined' && Mvu.events?.VARIABLE_UPDATE_ENDED) {
         eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, (variables: any) => {
           console.log('[咩咩手机] 监听到MVU事件:', Mvu.events.VARIABLE_UPDATE_ENDED);
           void handleMvuVariableUpdate();
         });
+        mvuListenerRegistered = true;
+      } else {
+        // 备用方案：使用字符串事件名
+        eventOn('MvuVariableUpdateEnded', () => {
+          console.log('[咩咩手机] 监听到MVU变量更新事件（备用方案）');
+          void handleMvuVariableUpdate();
+        });
+        mvuListenerRegistered = true;
       }
     }).catch((error) => {
       console.warn('[咩咩手机] MVU框架初始化失败:', error);
