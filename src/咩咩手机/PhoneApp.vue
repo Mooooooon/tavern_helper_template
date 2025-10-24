@@ -5,33 +5,46 @@
     @navigate="navigateTo"
   >
     <!-- 首页 -->
-    <HomePage v-if="currentPage === 'home'" @navigate="navigateTo" />
+    <KeepAlive>
+      <HomePage v-if="currentPage === 'home'" @navigate="navigateTo" />
+    </KeepAlive>
 
     <!-- 设置页面 -->
-    <SettingsPage v-else-if="currentPage === 'settings'" @navigate="navigateTo" />
+    <KeepAlive>
+      <SettingsPage v-if="currentPage === 'settings'" @navigate="navigateTo" />
+    </KeepAlive>
 
     <!-- 聊天应用 -->
-    <ChatApp v-else-if="currentPage === 'chat'" @navigate="navigateTo">
-      <ChatLayout :active-conversation-id="conversationId" :active-page="currentChatPage" @navigate="navigateTo">
-        <!-- 消息列表 -->
-        <MessagesPage v-if="currentChatPage === 'messages'" @navigate="navigateTo" />
+    <KeepAlive>
+      <ChatApp v-if="currentPage === 'chat'" @navigate="navigateTo">
+        <ChatLayout :active-conversation-id="conversationId" :active-page="currentChatPage" @navigate="navigateTo">
+          <!-- 消息列表 -->
+          <KeepAlive>
+            <MessagesPage v-if="currentChatPage === 'messages'" @navigate="navigateTo" />
+          </KeepAlive>
 
-        <!-- 联系人页面 -->
-        <ContactsPage v-else-if="currentChatPage === 'contacts'" @navigate="navigateTo" />
+          <!-- 联系人页面 -->
+          <KeepAlive>
+            <ContactsPage v-if="currentChatPage === 'contacts'" @navigate="navigateTo" />
+          </KeepAlive>
 
-        <!-- 动态页面 -->
-        <MomentsPage v-else-if="currentChatPage === 'moments'" @navigate="navigateTo" />
+          <!-- 动态页面 -->
+          <KeepAlive>
+            <MomentsPage v-if="currentChatPage === 'moments'" @navigate="navigateTo" />
+          </KeepAlive>
 
-        <!-- 对话页面 -->
-        <ConversationPage
-          v-else-if="currentChatPage === 'conversation'"
-          :contact-id="conversationId"
-          @navigate="navigateTo"
-        />
-      </ChatLayout>
-    </ChatApp>
-
-    </PhoneFrame>
+          <!-- 对话页面 -->
+          <KeepAlive>
+            <ConversationPage
+              v-if="currentChatPage === 'conversation' && !!conversationId"
+              :contact-id="conversationId"
+              @navigate="navigateTo"
+            />
+          </KeepAlive>
+        </ChatLayout>
+      </ChatApp>
+    </KeepAlive>
+  </PhoneFrame>
 </template>
 
 <script setup lang="ts">
