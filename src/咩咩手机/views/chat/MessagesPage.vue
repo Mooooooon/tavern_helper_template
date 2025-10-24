@@ -70,42 +70,42 @@ const { messageSummaries, currentTime, contactList, contactOrder } = storeToRefs
 
 function formatTimestamp(timestamp: number, nowMs: number): string {
   const date = new Date(timestamp);
+  const now = new Date(nowMs);
   const diff = nowMs - timestamp;
 
-  if (diff < 60 * 1000) {
-    return '刚刚';
-  }
+  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
 
-  if (diff < 60 * 60 * 1000) {
-    const minutes = Math.floor(diff / (60 * 1000));
-    return `${minutes}分钟前`;
-  }
-
-  const now = new Date(nowMs);
-  const oneDay = 24 * 60 * 60 * 1000;
-
-  if (diff < oneDay && date.getDate() === now.getDate()) {
-    const hours = Math.floor(diff / (60 * 60 * 1000));
-    if (hours < 24) {
-      return `${hours}小时前`;
+  if (dayDiff <= 0) {
+    if (diff < 60 * 1000) {
+      return '刚刚';
     }
-    const hour = date.getHours();
+
+    if (diff < 60 * 60 * 1000) {
+      const minutes = Math.floor(diff / (60 * 1000));
+      return `${minutes}分钟前`;
+    }
+
+    const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    const ampm = hour < 12 ? '上午' : '下午';
-    const hour12 = hour % 12 || 12;
-    return `${ampm} ${hour12}:${minutes}`;
+    return `${hours}:${minutes}`;
   }
 
-  if (diff < 2 * oneDay && date.getDate() === now.getDate() - 1) {
+  if (dayDiff === 1) {
     return '昨天';
   }
-
-  if (diff < 7 * oneDay) {
-    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    return weekdays[date.getDay()];
+  if (dayDiff === 2) {
+    return '前天';
+  }
+  if (dayDiff === 3) {
+    return '三天前';
   }
 
-  return `${date.getMonth() + 1}/${date.getDate()}`;
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const isSameYear = date.getFullYear() === now.getFullYear();
+  return isSameYear ? `${month}/${day}` : `${date.getFullYear()}/${month}/${day}`;
 }
 
 const messages = computed<DisplayMessage[]>(() => {

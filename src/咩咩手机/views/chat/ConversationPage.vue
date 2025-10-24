@@ -6,6 +6,7 @@
         <div
           v-if="shouldShowTimestamp(item, index)"
           class="message-row system"
+          :class="{ 'first-timestamp': index === 0 }"
         >
           <div class="system-tag">{{ item.time }}</div>
         </div>
@@ -33,8 +34,15 @@
                 </div>
               </div>
             </div>
-            <div v-else class="bubble bubble--me">
-              <p class="text">{{ item.text }}</p>
+            <div v-else class="me-message">
+              <div class="bubble bubble--me">
+                <p class="text">{{ item.text }}</p>
+              </div>
+              <img
+                :src="userAvatar"
+                alt="我的头像"
+                class="avatar avatar--me"
+              >
             </div>
           </template>
         </div>
@@ -81,6 +89,7 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
+import { useUserStore } from '../../stores/userStore';
 
 type ConversationMessage = {
   id: number;
@@ -101,16 +110,11 @@ const emit = defineEmits<{
 }>();
 
 const chatStore = useChatStore();
+const userStore = useUserStore();
 const { currentTime } = storeToRefs(chatStore);
+const { userInfo } = storeToRefs(userStore);
 
-function getTimePeriodLabel(date: Date): string {
-  const hour = date.getHours();
-  if (hour < 6) return '凌晨';
-  if (hour < 11) return '上午';
-  if (hour < 13) return '中午';
-  if (hour < 18) return '下午';
-  return '晚上';
-}
+const userAvatar = computed(() => userInfo.value?.avatar || '');
 
 function formatTimestamp(timestamp: number): string {
   const nowMs = currentTime.value ?? Date.now();
@@ -125,24 +129,23 @@ function formatTimestamp(timestamp: number): string {
   const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
 
   if (dayDiff === 0) {
-    return `${getTimePeriodLabel(date)} ${timeString}`;
+    return timeString;
   }
 
-  if (dayDiff === 1) {
-    return `昨天 ${timeString}`;
-  }
-
-  if (dayDiff > 1 && dayDiff < 7) {
-    if (dayDiff === 2) {
+  switch (dayDiff) {
+    case 1:
+      return `昨天 ${timeString}`;
+    case 2:
       return `前天 ${timeString}`;
+    case 3:
+      return `三天前 ${timeString}`;
+    default: {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}/${month}/${day} ${timeString}`;
     }
-    return `${dayDiff}天前 ${timeString}`;
   }
-
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  return `${year}/${month}/${day} ${timeString}`;
 }
 
 const currentConversation = computed(() => {
@@ -167,9 +170,9 @@ function shouldShowTimestamp(item: ConversationMessage, index: number): boolean 
   const current = item.id;
   const previous = prevItem.id;
   const timeDiff = current - previous;
-  const fiveMinutes = 5 * 60 * 1000;
+  const oneHour = 60 * 60 * 1000;
 
-  return timeDiff > fiveMinutes;
+  return timeDiff >= oneHour;
 }
 
 function goBack() {
@@ -219,12 +222,17 @@ function goBack() {
   justify-content: center;
   color: #8c9099;
   font-size: 12px;
+  margin: 18px 0 10px;
+}
+
+.message-row.system.first-timestamp {
+  margin-top: 0;
 }
 
 .system-tag {
-  background: rgba(140, 144, 153, 0.18);
-  padding: 6px 12px;
-  border-radius: 999px;
+  padding: 0;
+  border-radius: 0;
+  line-height: 1;
 }
 
 .friend-message {
@@ -272,6 +280,16 @@ function goBack() {
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.me-message {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 6px;
+  margin-left: auto;
+  max-width: 82%;
 }
 
 .bubble {
@@ -284,7 +302,11 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-left: auto;
+}
+
+.avatar--me {
+  width: 36px;
+  height: 36px;
 }
 
 .text {
