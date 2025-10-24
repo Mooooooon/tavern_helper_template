@@ -17,7 +17,13 @@
     <!-- 聊天应用 -->
     <KeepAlive>
       <ChatApp v-if="currentPage === 'chat'" @navigate="navigateTo">
-        <ChatLayout :active-conversation-id="conversationId" :active-page="currentChatPage" @navigate="navigateTo">
+        <KeepAlive>
+          <ChatLayout
+            v-if="currentPage === 'chat'"
+            :active-conversation-id="conversationId"
+            :active-page="currentChatPage"
+            @navigate="navigateTo"
+          >
           <!-- 消息列表 -->
           <KeepAlive>
             <MessagesPage v-if="currentChatPage === 'messages'" @navigate="navigateTo" />
@@ -41,7 +47,8 @@
               @navigate="navigateTo"
             />
           </KeepAlive>
-        </ChatLayout>
+          </ChatLayout>
+        </KeepAlive>
       </ChatApp>
     </KeepAlive>
   </PhoneFrame>

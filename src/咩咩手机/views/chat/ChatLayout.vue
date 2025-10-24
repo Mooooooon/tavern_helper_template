@@ -1,13 +1,13 @@
 <template>
   <div class="chat-layout">
     <header v-if="!shouldHideHeader" class="chat-header" :class="{ 'chat-header--conversation': !!activeConversation }">
-      <template v-if="activeConversation">
+      <div class="conversation-header" v-show="!!activeConversation">
         <button class="header-button header-button--back" type="button" aria-label="返回聊天列表" @click="goBack">
           <svg viewBox="0 0 24 24">
             <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
           </svg>
         </button>
-        <div class="conversation-info">
+        <div class="conversation-info" v-if="activeConversation">
           <span class="conversation-name">{{ activeConversation.name }}</span>
           <span class="conversation-meta">{{ activeConversation.meta }}</span>
         </div>
@@ -18,36 +18,34 @@
             <rect x="6" y="16" width="12" height="1.8" rx="0.9" fill="currentColor" />
           </svg>
         </button>
-      </template>
-      <template v-else>
-        <div class="profile">
-          <CachedAvatar
-            :src="userInfo.avatar"
-            alt="Avatar"
-            class-name="avatar"
-            fallback-src=""
-          />
-          <div class="profile-info">
-            <span class="profile-name">{{ userInfo.name }}</span>
-            <span class="profile-status">
-              <span class="status-dot" aria-hidden="true"></span>
-              {{ userInfo.status }}
-            </span>
-          </div>
+      </div>
+      <div class="profile" v-show="!activeConversation">
+        <CachedAvatar
+          :src="userInfo.avatar"
+          alt="Avatar"
+          class-name="avatar"
+          fallback-src=""
+        />
+        <div class="profile-info">
+          <span class="profile-name">{{ userInfo.name }}</span>
+          <span class="profile-status">
+            <span class="status-dot" aria-hidden="true"></span>
+            {{ userInfo.status }}
+          </span>
         </div>
-        <div class="actions">
-          <button class="icon-button" type="button" aria-label="添加联系人">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-        </div>
-      </template>
+      </div>
+      <div class="actions" v-show="!activeConversation">
+        <button class="icon-button" type="button" aria-label="添加联系人">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
     </header>
     <main class="chat-content" :class="{ 'chat-content--conversation': !!activeConversation }">
       <slot></slot>
@@ -185,6 +183,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.conversation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  flex: 1;
 }
 
 .avatar {
