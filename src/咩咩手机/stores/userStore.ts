@@ -24,9 +24,11 @@ export const useUserStore = defineStore('userStore', {
 
   actions: {
     async ensureInitialized(): Promise<void> {
-      // 只在真正需要时加载用户信息，避免重复加载
+      // 用户信息只在初始化时加载一次，之后永不改变
       if (!this.userAvatar && !this.userAvatarSource) {
         await this.loadUserInfo();
+      } else {
+        console.log('[userStore] 用户信息已初始化，跳过重复加载');
       }
     },
 
@@ -71,6 +73,8 @@ export const useUserStore = defineStore('userStore', {
         return;
       }
 
+      console.log('[userStore] 开始加载用户头像');
+
       try {
         let avatarSrc: string | undefined;
         let avatarSource: string | undefined;
@@ -83,11 +87,13 @@ export const useUserStore = defineStore('userStore', {
             // 直接使用原始路径转换为缩略图
             console.log('[userStore] 获取到用户头像路径，转换为缩略图:', avatarPath);
             avatarSrc = convertAvatarToThumbnail(avatarPath);
+            console.log('[userStore] 转换后的缩略图URL:', avatarSrc);
           } else {
             // 如果没有获取到用户头像路径，尝试使用角色头像
             console.log('[userStore] 未获取到用户头像路径，尝试使用角色头像');
             const resolvedChar = resolveAvatar('char');
             avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
+            console.log('[userStore] 使用char头像，转换后的缩略图URL:', avatarSrc);
           }
         }
 

@@ -92,20 +92,20 @@ declare global {
 function getGlobalAvatarCache(): Map<string, boolean> {
   if (!window.__phoneAvatarCache) {
     window.__phoneAvatarCache = new Map();
-    console.log('[preloadAllAvatars] 创建新的全局头像缓存');
+    console.log('[getGlobalAvatarCache] 创建新的全局头像缓存');
   } else {
-    console.log(`[preloadAllAvatars] 复用现有缓存，当前有 ${window.__phoneAvatarCache.size} 个头像`);
+    console.log(`[getGlobalAvatarCache] 复用现有缓存，当前有 ${window.__phoneAvatarCache.size} 个头像`);
   }
   return window.__phoneAvatarCache;
 }
 
-// 全局头像预加载函数 - 优化版本
+// 全局头像预加载函数 - 只在初始化时使用
 async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> {
   const cache = getGlobalAvatarCache();
   const avatarUrls = new Set<string>();
   const newAvatarUrls = new Set<string>();
 
-  // 收集所有头像URL
+  // 收集所有头像URL（包括用户头像和联系人头像）
   if (userStore.userInfo?.avatar) {
     avatarUrls.add(userStore.userInfo.avatar);
   }
@@ -130,6 +130,9 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
   avatarUrls.forEach(url => {
     if (!cache.has(url)) {
       newAvatarUrls.add(url);
+      console.log(`[preloadAllAvatars] 发现未缓存的头像: ${url}`);
+    } else {
+      console.log(`[preloadAllAvatars] 头像已在缓存中，跳过: ${url}`);
     }
   });
 
@@ -163,6 +166,69 @@ async function preloadAllAvatars(userStore: any, chatStore: any): Promise<void> 
     console.log(`[preloadAllAvatars] 预加载完成，共处理 ${newAvatarUrls.size} 个新头像`);
   } catch (error) {
     console.warn('[preloadAllAvatars] 部分头像预加载失败:', error);
+  }
+}
+
+// 联系人头像预加载函数 - MVU更新时使用
+async function preloadContactAvatars(chatStore: any): Promise<void> {
+  const cache = getGlobalAvatarCache();
+  const avatarUrls = new Set<string>();
+  const newAvatarUrls = new Set<string>();
+
+  // 只收集联系人头像，不包括用户头像
+  if (chatStore.messageSummaries) {
+    chatStore.messageSummaries.forEach((summary: any) => {
+      if (summary.avatar) {
+        avatarUrls.add(summary.avatar);
+      }
+    });
+  }
+
+  if (chatStore.contactList) {
+    Object.values(chatStore.contactList).forEach((contact: any) => {
+      if (contact.avatar) {
+        avatarUrls.add(contact.avatar);
+      }
+    });
+  }
+
+  // 筛选出需要预加载的新头像
+  avatarUrls.forEach(url => {
+    if (!cache.has(url)) {
+      newAvatarUrls.add(url);
+    }
+  });
+
+  if (newAvatarUrls.size === 0) {
+    console.log('[preloadContactAvatars] 没有新的联系人头像需要预加载');
+    return;
+  }
+
+  console.log(`[preloadContactAvatars] 开始预加载 ${newAvatarUrls.size} 个新联系人头像`);
+
+  // 并行预加载新头像
+  const preloadPromises = Array.from(newAvatarUrls).map(url => {
+    return new Promise<void>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        cache.set(url, true);
+        console.log(`[preloadContactAvatars] 成功预加载并缓存联系人头像: ${url}`);
+        resolve();
+      };
+      img.onerror = () => {
+        console.warn(`[preloadContactAvatars] 联系人头像预加载失败: ${url}`);
+        cache.set(url, false); // 标记为失败，避免重复尝试
+        resolve();
+      };
+      img.src = url;
+    });
+  });
+
+  try {
+    await Promise.all(preloadPromises);
+    console.log(`[preloadContactAvatars] 预加载完成，共处理 ${newAvatarUrls.size} 个新联系人头像`);
+  } catch (error) {
+    console.warn('[preloadContactAvatars] 部分联系人头像预加载失败:', error);
   }
 }
 
@@ -371,15 +437,18 @@ async function initPhoneUI(): Promise<void> {
     // 等待下一个tick，确保Vue应用完全挂载后再初始化stores
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    // 异步初始化全局用户信息，不阻塞挂载
+    // 异步初始化全局用户信息，不阻塞挂载（只在初始化时执行一次）
     const { useUserStore } = await import('./stores/userStore');
     const userStore = useUserStore();
 
-    // 确保用户信息已经加载完成，特别是头像
+    // 确保用户信息已经加载完成，特别是头像（只加载一次，永不改变）
     if (!userStore.userAvatar) {
+      console.log('[initPhoneUI] 首次初始化用户信息');
       await userStore.ensureInitialized();
       // 额外等待一下确保头像加载完成
       await new Promise(resolve => setTimeout(resolve, 100));
+    } else {
+      console.log('[initPhoneUI] 用户信息已存在，跳过重复加载');
     }
 
     // 也初始化chatStore，确保它在Vue应用上下文中被创建
@@ -536,17 +605,12 @@ function showCacheStatus(): void {
   }
 }
 
-// 检查是否有新的头像需要预加载
-async function checkForNewAvatars(userStore: any, chatStore: any): Promise<boolean> {
+// 检查是否有新的联系人头像需要预加载（排除用户头像）
+async function checkForNewContactAvatars(chatStore: any): Promise<boolean> {
   const cache = getGlobalAvatarCache();
   const newAvatarUrls = new Set<string>();
 
-  // 检查用户头像
-  if (userStore.userInfo?.avatar && !cache.has(userStore.userInfo.avatar)) {
-    newAvatarUrls.add(userStore.userInfo.avatar);
-  }
-
-  // 检查联系人头像
+  // 只检查联系人头像，不检查用户头像（用户头像永远不变）
   if (chatStore.messageSummaries) {
     chatStore.messageSummaries.forEach((summary: any) => {
       if (summary.avatar && !cache.has(summary.avatar)) {
@@ -565,7 +629,7 @@ async function checkForNewAvatars(userStore: any, chatStore: any): Promise<boole
   }
 
   if (newAvatarUrls.size > 0) {
-    console.log(`[checkForNewAvatars] 发现 ${newAvatarUrls.size} 个新头像需要预加载`);
+    console.log(`[checkForNewContactAvatars] 发现 ${newAvatarUrls.size} 个新联系人头像需要预加载`);
     return true;
   }
 
@@ -610,17 +674,14 @@ async function handleMvuVariableUpdate(): Promise<void> {
 
       console.log('[咩咩手机] 数据重新读取完成');
 
-      // 只在必要时触发重新预加载头像
-      const { useUserStore } = await import('./stores/userStore');
-      const userStore = useUserStore();
-
-      // 检查是否有新的头像需要预加载
-      const hasNewAvatars = await checkForNewAvatars(userStore, chatStore);
-      if (hasNewAvatars) {
-        console.log('[咩咩手机] 发现新头像，开始预加载');
-        await preloadAllAvatars(userStore, chatStore);
+      // 只检查新的联系人头像（用户头像永远不变，不需要重新处理）
+      const hasNewContactAvatars = await checkForNewContactAvatars(chatStore);
+      if (hasNewContactAvatars) {
+        console.log('[咩咩手机] 发现新联系人头像，开始预加载');
+        // 只预加载联系人头像，不包括用户头像
+        await preloadContactAvatars(chatStore);
       } else {
-        console.log('[咩咩手机] 没有新头像，跳过预加载');
+        console.log('[咩咩手机] 没有新联系人头像，跳过预加载');
       }
 
       // 强制触发Vue组件更新
@@ -745,6 +806,12 @@ $(() => {
         console.log('[Debug] 原始URL:', url);
         console.log('[Debug] 缩略图URL:', thumbnail);
         return thumbnail;
+      });
+    },
+    // 添加缓存状态检查函数
+    cacheStats: () => {
+      import('./utils/avatar').then(({ logCacheStats }) => {
+        logCacheStats('Debug');
       });
     }
   };
