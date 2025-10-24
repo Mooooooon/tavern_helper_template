@@ -1,4 +1,4 @@
-<template>
+)<template>
   <img
     :src="displaySrc"
     :alt="alt"

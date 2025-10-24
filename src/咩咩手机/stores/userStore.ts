@@ -24,8 +24,8 @@ export const useUserStore = defineStore('userStore', {
 
   actions: {
     async ensureInitialized(): Promise<void> {
-      // 总是尝试加载用户信息，但不阻塞显示
-      if (!this.userAvatar) {
+      // 只在真正需要时加载用户信息，避免重复加载
+      if (!this.userAvatar && !this.userAvatarSource) {
         await this.loadUserInfo();
       }
     },
@@ -92,10 +92,12 @@ export const useUserStore = defineStore('userStore', {
           (avatarSource !== this.userAvatarSource || avatarSrc !== this.userAvatar);
 
         if (shouldUpdate && avatarSrc) {
+          // 只有在真正需要更新时才预加载
           await preloadAvatar(avatarSrc);
           this.userAvatar = avatarSrc;
           this.userAvatarSource = avatarSource || '';
         } else if (avatarSrc && !this.userAvatar) {
+          // 首次设置头像时不重复预加载（因为可能已经缓存了）
           this.userAvatar = avatarSrc;
           this.userAvatarSource = avatarSource || '';
         }

@@ -19,11 +19,12 @@
           <div v-if="item.type === 'system'" class="system-tag">{{ item.text }}</div>
           <template v-else>
             <div v-if="item.sender === 'friend'" class="friend-message">
-              <img
+              <CachedAvatar
                 :src="currentConversation.avatar || ''"
                 alt="联系人头像"
-                class="avatar"
-              >
+                class-name="avatar"
+                fallback-src=""
+              />
               <div
                 class="friend-content"
                 :class="{ 'friend-content--single': !isGroupConversation }"
@@ -38,11 +39,12 @@
               <div class="bubble bubble--me">
                 <p class="text">{{ item.text }}</p>
               </div>
-              <img
+              <CachedAvatar
                 :src="userAvatar"
                 alt="我的头像"
-                class="avatar avatar--me"
-              >
+                class-name="avatar avatar--me"
+                fallback-src=""
+              />
             </div>
           </template>
         </div>
@@ -90,6 +92,7 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../../stores/chatStore';
 import { useUserStore } from '../../stores/userStore';
+import CachedAvatar from '../../components/CachedAvatar.vue';
 
 type ConversationMessage = {
   id: number;
