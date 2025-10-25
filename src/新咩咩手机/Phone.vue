@@ -353,7 +353,10 @@ const loadTimeFromTavern = async () => {
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
     if (phoneData && typeof phoneData === 'object' && phoneData.当前时间) {
-      currentTime.value = phoneData.当前时间;
+      // 将格式化的时间字符串转换为时间戳
+      const formattedTime = phoneData.当前时间;
+      const timestamp = new Date(formattedTime).getTime();
+      currentTime.value = isNaN(timestamp) ? Date.now() : timestamp;
       hasLoadedTavernData.value = true;
     }
   } catch (error) {

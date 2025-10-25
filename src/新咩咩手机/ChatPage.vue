@@ -337,10 +337,14 @@ const conversationMessages = computed(() => {
   if (!activeContact.value) return [];
 
   const messages = Object.entries(activeContact.value.聊天记录)
-    .map(([timestamp, msg]) => ({
-      ...msg,
-      timestamp: parseInt(timestamp)
-    }))
+    .map(([timeStr, msg]) => {
+      // 将格式化的时间字符串转换为时间戳
+      const timestamp = new Date(timeStr).getTime();
+      return {
+        ...msg,
+        timestamp: isNaN(timestamp) ? 0 : timestamp
+      };
+    })
     .sort((a, b) => a.timestamp - b.timestamp);
 
   return messages;
@@ -386,15 +390,19 @@ const filteredMessages = computed<MessageData[]>(() => {
 
     const lastEntry = chatRecords[chatRecords.length - 1];
     const lastMessage = lastEntry[1];
-    const lastTimestamp = parseInt(lastEntry[0]);
+    // 将格式化的时间字符串转换为时间戳
+    const lastTimestamp = new Date(lastEntry[0]).getTime();
+
+    // 确保时间戳有效
+    const validTimestamp = isNaN(lastTimestamp) ? 0 : lastTimestamp;
 
     messages.push({
       contactName: key,
       name: contact.昵称,
       lastMessage: lastMessage.message,
-      timestamp: lastTimestamp,
+      timestamp: validTimestamp,
       avatar: contact.头像,
-      time: formatTimestamp(lastTimestamp, now),
+      time: formatTimestamp(validTimestamp, now),
       unread: Math.random() > 0.7 ? Math.floor(Math.random() * 5) + 1 : undefined,
     });
   }
@@ -540,13 +548,17 @@ const momentsData = computed(() => {
         }
       }
 
+      // 将格式化的时间字符串转换为时间戳
+      const momentTimestamp = new Date(moment.时间).getTime();
+      const validTimestamp = isNaN(momentTimestamp) ? 0 : momentTimestamp;
+
       moments.push({
         id: `${contactName}-${moment.时间}-${i}`,
         contactName,
         name: contact.昵称 || contactName,
         content: moment.内容,
-        timestamp: formatMomentTimestamp(moment.时间, now),
-        timeValue: moment.时间,
+        timestamp: formatMomentTimestamp(validTimestamp, now),
+        timeValue: validTimestamp,
         comments,
         avatar: contact.头像
       });
