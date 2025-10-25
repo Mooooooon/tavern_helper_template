@@ -1,7 +1,13 @@
 <template>
-  <div
+  <DraggableWrapper
     v-show="visible"
+    :x="position.left"
+    :y="position.top"
+    :z="1000"
+    drag-handle="mimi-phone-drag-handle"
     class="mimi-phone-wrapper"
+    @dragging="handleDrag"
+    @dragstop="handleDragStop"
   >
     <div class="mimi-phone-container">
       <div class="mimi-phone-frame">
@@ -11,8 +17,8 @@
         </div>
 
         <div class="mimi-phone-frame__inner">
-          <div class="mimi-phone-drag-handle">
-            <div class="mimi-phone-status-bar">
+          <div ref="dragHandleRef" class="mimi-phone-drag-handle">
+            <div class="mimi-phone-status-bar" :style="statusBarStyle" @click="handleStatusBarClick">
               <div class="mimi-phone-status-left">
                 <span class="mimi-phone-time">{{ currentTimeText }}</span>
               </div>
@@ -23,7 +29,8 @@
           </div>
 
           <div class="mimi-phone-screen">
-            <div class="mimi-home-page">
+            <!-- Home Page -->
+            <div v-if="currentView === 'home'" class="mimi-home-page">
               <header class="mimi-home-header">
                 <div class="mimi-home-clock">{{ currentTimeText }}</div>
                 <div class="mimi-home-date">{{ currentDateText }}</div>
@@ -86,18 +93,89 @@
                 <div class="mimi-home-dock__indicator"></div>
               </section>
             </div>
+
+            <!-- Chat Page -->
+            <ChatPage v-else-if="currentView === 'chat'" @go-home="goHome" />
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </DraggableWrapper>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue';
+import ChatPage from './ChatPage.vue';
+import DraggableWrapper from './DraggableWrapper.vue';
 
 const visible = ref(false);
 const currentTime = ref(Date.now());
+const currentView = ref<'home' | 'chat'>('home');
+
+// 拖动功能
+const DEFAULT_MARGIN = 20;
+const MAX_PHONE_WIDTH = 390;
+
+const position = ref({
+  left: DEFAULT_MARGIN,
+  top: DEFAULT_MARGIN,
+});
+
+// 双击返回主页功能
+const lastTapTime = ref(0);
+const TAP_TIMEOUT = 300; // 双击间隔时间（毫秒）
+
+function getInitialPosition() {
+  const width = getEffectivePhoneWidth();
+  const viewportWidth = window.innerWidth || width;
+  const left = Math.max(DEFAULT_MARGIN, (viewportWidth - width) / 2);
+  const top = DEFAULT_MARGIN;
+  return { left, top };
+}
+
+function getEffectivePhoneWidth(): number {
+  const viewportWidth = window.innerWidth;
+  const minGap = DEFAULT_MARGIN * 2;
+  return Math.min(MAX_PHONE_WIDTH, Math.max(0, viewportWidth - minGap));
+}
+
+function applyPosition(next: { left?: number; top?: number }) {
+  position.value = {
+    left: typeof next.left === 'number' ? next.left : position.value.left,
+    top: typeof next.top === 'number' ? next.top : position.value.top,
+  };
+}
+
+function handleDrag(rect: { left: number; top: number; width: number; height: number }) {
+  applyPosition({ left: rect.left, top: rect.top });
+}
+
+function handleDragStop(rect: { left: number; top: number; width: number; height: number }) {
+  handleDrag(rect);
+  localStorage.setItem('mimi-phone-position', JSON.stringify({
+    left: rect.left,
+    top: rect.top,
+  }));
+}
+
+onMounted(() => {
+  const savedPosition = localStorage.getItem('mimi-phone-position');
+  let initial = getInitialPosition();
+
+  if (savedPosition) {
+    try {
+      const parsed = JSON.parse(savedPosition) as { left?: number; top?: number };
+      initial = {
+        left: typeof parsed.left === 'number' ? parsed.left : initial.left,
+        top: typeof parsed.top === 'number' ? parsed.top : initial.top,
+      };
+    } catch {
+      // Ignore malformed data and fall back to the default position
+    }
+  }
+
+  applyPosition(initial);
+});
 
 const showPhone = async () => {
   visible.value = true;
@@ -141,9 +219,61 @@ const currentDateText = computed(() => {
   return `${month}月${day}日 · ${weekdays[date.getDay()]}`;
 });
 
+// 状态栏颜色计算
+const statusBarColor = computed(() => {
+  switch (currentView.value) {
+    case 'home':
+      return 'transparent';
+    case 'chat':
+      return '#ffffff';
+    default:
+      return 'transparent';
+  }
+});
+
+const statusBarTextColor = computed(() => {
+  switch (currentView.value) {
+    case 'home':
+      return '#202432';
+    case 'chat':
+      return '#222222';
+    default:
+      return '#202432';
+  }
+});
+
+// 状态栏样式
+const statusBarStyle = computed(() => ({
+  backgroundColor: statusBarColor.value,
+  color: statusBarTextColor.value,
+}));
+
 function goChat() {
-  // TODO: 实现导航到聊天页面
-  console.log('导航到聊天页面');
+  currentView.value = 'chat';
+}
+
+function goHome() {
+  currentView.value = 'home';
+}
+
+// 双击顶部状态栏返回主页
+function handleStatusBarClick(event: MouseEvent) {
+  // 如果点击的是按钮或其子元素，不触发双击返回
+  const target = event.target as HTMLElement;
+  if (target.closest('button')) {
+    return;
+  }
+
+  const currentTimeMs = Date.now();
+
+  if (currentTimeMs - lastTapTime.value < TAP_TIMEOUT) {
+    // 双击检测到，返回主页
+    if (currentView.value !== 'home') {
+      currentView.value = 'home';
+    }
+  }
+
+  lastTapTime.value = currentTimeMs;
 }
 
 function goSettings() {
@@ -154,11 +284,6 @@ function goSettings() {
 
 <style lang="scss">
 .mimi-phone-wrapper {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  z-index: 999999 !important;
   pointer-events: auto !important;
   width: min(390px, calc(100vw - 32px));
   max-width: 390px;
@@ -278,10 +403,23 @@ function goSettings() {
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
-  background: transparent;
   font-size: 14px;
   font-weight: 600;
-  color: #202432;
+  cursor: grab;
+  user-select: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.mimi-phone-status-bar:active {
+  cursor: grabbing;
+}
+
+.mimi-phone-status-bar:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.mimi-phone-status-bar:active {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .mimi-phone-screen {
