@@ -20,7 +20,8 @@
       "Bash(pnpm remove:*)",
       "mcp__ide__getDiagnostics",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(mkdir:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
