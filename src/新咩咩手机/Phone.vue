@@ -382,6 +382,8 @@ const loadTimeFromTavern = async () => {
   flex-shrink: 0;
   filter: drop-shadow(0 24px 38px rgba(12, 20, 38, 0.32));
   pointer-events: auto;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .mimi-phone-container::before,

@@ -1,7 +1,7 @@
 <template>
   <div class="mimi-chat-app">
     <!-- Chat Header -->
-    <header v-show="currentView !== 'conversation' && currentView !== 'moments'" class="mimi-chat-header" :style="chatStatusBarStyle" @click="handleChatHeaderClick">
+    <header v-show="currentView !== 'conversation' && currentView !== 'moments'" class="mimi-chat-header" :style="chatStatusBarStyle">
       <div class="mimi-profile">
         <div class="mimi-avatar">
           <img :src="userAvatar || ''" alt="Avatar" @error="handleAvatarError">
@@ -65,7 +65,6 @@
           >
             <div class="mimi-avatar-wrapper">
               <img :src="message.avatar || ''" alt="avatar">
-              <span v-if="message.unread" class="mimi-badge">{{ message.unread }}</span>
             </div>
             <div class="mimi-message-details">
               <div class="mimi-message-top">
@@ -247,7 +246,6 @@ interface MessageData {
   timestamp: number;
   avatar?: string;
   time: string;
-  unread?: number;
   pinned?: boolean;
 }
 
@@ -303,27 +301,6 @@ const conversationHeaderStyle = computed(() => ({
   color: '#222222',
 }));
 
-// 双击返回主页功能
-const chatLastTapTime = ref(0);
-const CHAT_TAP_TIMEOUT = 300; // 双击间隔时间（毫秒）
-
-// 双击顶部header返回主页
-function handleChatHeaderClick(event: MouseEvent) {
-  // 如果点击的是按钮或其子元素，不触发双击返回
-  const target = event.target as HTMLElement;
-  if (target.closest('button')) {
-    return;
-  }
-
-  const currentTimeMs = Date.now();
-
-  if (currentTimeMs - chatLastTapTime.value < CHAT_TAP_TIMEOUT) {
-    // 双击检测到，返回主页
-    emit('go-home');
-  }
-
-  chatLastTapTime.value = currentTimeMs;
-}
 
 // 联系人数据 - 从外部加载
 const contactsData = ref<Record<string, ContactData>>({});
@@ -403,7 +380,6 @@ const filteredMessages = computed<MessageData[]>(() => {
       timestamp: validTimestamp,
       avatar: contact.头像,
       time: formatTimestamp(validTimestamp, now),
-      unread: Math.random() > 0.7 ? Math.floor(Math.random() * 5) + 1 : undefined,
     });
   }
 
@@ -725,6 +701,9 @@ onMounted(() => {
   background-color: #f6f6f7;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .mimi-chat-app::-webkit-scrollbar {
@@ -738,21 +717,8 @@ onMounted(() => {
   padding: 0 16px 12px;
   width: 100%;
   box-sizing: border-box;
-  cursor: grab;
+  cursor: default;
   user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.mimi-chat-header:active {
-  cursor: grabbing;
-}
-
-.mimi-chat-header:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.mimi-chat-header:active {
-  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .mimi-profile {
@@ -881,6 +847,9 @@ onMounted(() => {
   overflow-y: auto;
   min-height: 0;
   background-color: #ffffff;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .mimi-chat-content--conversation {
@@ -932,6 +901,7 @@ onMounted(() => {
   overflow: hidden !important;
   box-sizing: border-box !important;
   flex-shrink: 0 !important;
+  position: relative !important;
 }
 
 .mimi-message-item:focus-visible {
@@ -957,30 +927,13 @@ onMounted(() => {
   border: 1px solid #e5e5e8;
 }
 
-.mimi-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background: #2b2b2d;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .mimi-message-details {
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
   min-width: 0 !important;
-  max-width: 100% !important;
+  width: 100% !important;
   overflow: hidden !important;
   justify-content: space-between !important;
 }
@@ -991,6 +944,8 @@ onMounted(() => {
   align-items: baseline;
   gap: 8px;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .mimi-name {
@@ -1016,7 +971,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  max-width: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -1025,13 +980,12 @@ onMounted(() => {
   font-size: 13px !important;
   color: #5a5a5f !important;
   min-width: 0 !important;
-  max-width: 100% !important;
+  width: 0 !important; /* 强制flex子元素遵守省略号 */
   display: block !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   line-height: 1.3;
-  overflow-wrap: anywhere !important;
 }
 
 .mimi-contact-section {
@@ -1295,5 +1249,37 @@ nav {
   height: 2px;
   border-radius: 999px;
   background: #1f1f1f;
+}
+
+/* 隔离手机应用的输入框样式，覆盖酒馆主题 */
+.mimi-chat-app input[type="text"],
+.mimi-chat-app input[type="number"],
+.mimi-chat-app input[type="switch"],
+.mimi-chat-app input:not([type]),
+.mimi-chat-app textarea:not([type="search"]) {
+  background-color: #f6f6f7 !important;
+  border: 1px solid #e5e5e8 !important;
+  color: #1f1f1f !important;
+}
+
+.mimi-chat-app .mimi-message-input {
+  background-color: #f6f6f7 !important;
+  border: 1px solid #e5e5e8 !important;
+  color: #1f1f1f !important;
+}
+
+.mimi-chat-app .mimi-message-input:focus {
+  border-color: #007aff !important;
+  background-color: #ffffff !important;
+}
+
+.mimi-chat-app .mimi-moment-reply-input {
+  background-color: #f3f4f6 !important;
+  border: none !important;
+  color: #2c2c2e !important;
+}
+
+.mimi-chat-app .mimi-moment-reply-input::placeholder {
+  color: #9b9b9f !important;
 }
 </style>

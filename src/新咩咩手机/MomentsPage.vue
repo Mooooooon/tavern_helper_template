@@ -1,6 +1,6 @@
 <template>
   <div class="mimi-moments-page">
-    <header class="mimi-moments-header" :style="momentsHeaderStyle" @click="handleMomentsHeaderClick">
+    <header class="mimi-moments-header" :style="momentsHeaderStyle">
       <button class="mimi-header-button mimi-header-button--back" type="button" aria-label="返回聊天列表" @click="goBack">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
@@ -92,27 +92,6 @@ interface MomentItem {
   avatar?: string;
 }
 
-// 双击返回主页功能
-const momentsLastTapTime = ref(0);
-const MOMENTS_TAP_TIMEOUT = 300; // 双击间隔时间（毫秒）
-
-// 双击顶部header返回主页
-function handleMomentsHeaderClick(event: MouseEvent) {
-  // 如果点击的是按钮或其子元素，不触发双击返回
-  const target = event.target as HTMLElement;
-  if (target.closest('button')) {
-    return;
-  }
-
-  const currentTimeMs = Date.now();
-
-  if (currentTimeMs - momentsLastTapTime.value < MOMENTS_TAP_TIMEOUT) {
-    // 双击检测到，返回主页
-    emit('goBack');
-  }
-
-  momentsLastTapTime.value = currentTimeMs;
-}
 
 // 动态页面状态栏颜色计算
 const momentsHeaderStyle = computed(() => ({
@@ -157,21 +136,8 @@ function goBack() {
   background: #ffffff;
   border-bottom: 1px solid #e8e8ea;
   color: #1f1f1f;
-  cursor: grab;
+  cursor: default;
   user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.mimi-moments-header:active {
-  cursor: grabbing;
-}
-
-.mimi-moments-header:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.mimi-moments-header:active {
-  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .mimi-moments-title {
@@ -369,5 +335,26 @@ function goBack() {
 .mimi-moments-list::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+/* 隔离手机应用的输入框样式，覆盖酒馆主题 */
+.mimi-moments-page input[type="text"],
+.mimi-moments-page input[type="number"],
+.mimi-moments-page input[type="switch"],
+.mimi-moments-page input:not([type]),
+.mimi-moments-page textarea:not([type="search"]) {
+  background-color: #f3f4f6 !important;
+  border: none !important;
+  color: #2c2c2e !important;
+}
+
+.mimi-moments-page .mimi-moment-reply-input {
+  background-color: #f3f4f6 !important;
+  border: none !important;
+  color: #2c2c2e !important;
+}
+
+.mimi-moments-page .mimi-moment-reply-input::placeholder {
+  color: #9b9b9f !important;
 }
 </style>
