@@ -95,7 +95,11 @@
             </div>
 
             <!-- Chat Page -->
-            <ChatPage v-else-if="currentView === 'chat'" @go-home="goHome" />
+            <ChatPage
+              v-else-if="currentView === 'chat'"
+              ref="chatPageRef"
+              @go-home="goHome"
+            />
           </div>
         </div>
       </div>
@@ -104,13 +108,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import ChatPage from './ChatPage.vue';
 import DraggableWrapper from './DraggableWrapper.vue';
 
 const visible = ref(false);
 const currentTime = ref(Date.now());
 const currentView = ref<'home' | 'chat'>('home');
+const chatPageRef = ref<InstanceType<typeof ChatPage> | null>(null);
+const hasLoadedTavernData = ref(false);
 
 // 拖动功能
 const DEFAULT_MARGIN = 20;
@@ -180,6 +186,10 @@ onMounted(() => {
 const showPhone = async () => {
   visible.value = true;
   await nextTick();
+
+  // 等待ChatPage组件完全渲染
+  await nextTick();
+  await nextTick();
 };
 
 const hidePhone = async () => {
@@ -195,13 +205,21 @@ defineExpose({
 });
 
 onMounted(() => {
-  // 每秒更新时间
+  // 启动时间监听器
+  const cleanup = setupTimeListener();
+
+  // 系统时间定时器 - 只有在没有加载外部数据时才使用系统时间
   const timer = setInterval(() => {
-    currentTime.value = Date.now();
+    if (!hasLoadedTavernData.value) {
+      currentTime.value = Date.now();
+    }
   }, 1000);
 
-  // 清理定时器
-  return () => clearInterval(timer);
+  // 清理函数
+  return () => {
+    cleanup?.();
+    clearInterval(timer);
+  };
 });
 
 const currentTimeText = computed(() => {
@@ -278,8 +296,52 @@ function handleStatusBarClick(event: MouseEvent) {
 
 function goSettings() {
   // TODO: 实现导航到设置页面
-  console.log('导航到设置页面');
 }
+
+// 监听酒馆变量变化并更新时间
+const setupTimeListener = () => {
+  // 初始化时立即加载一次时间
+  loadTimeFromTavern();
+
+  // 监听MVU变量变化事件
+  if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
+  }
+
+  // 设置定时检查作为备选方案（降低频率）
+  const checkInterval = setInterval(() => {
+    if (!hasLoadedTavernData.value) {
+      loadTimeFromTavern();
+    }
+  }, 30000);
+
+  // 清理函数
+  return () => clearInterval(checkInterval);
+};
+
+// 从酒馆变量加载时间
+const loadTimeFromTavern = async () => {
+  if (hasLoadedTavernData.value) return;
+
+  try {
+    // 等待MVU初始化
+    if (typeof waitGlobalInitialized === 'function') {
+      await waitGlobalInitialized('Mvu');
+    }
+
+    if (typeof Mvu === 'undefined') return;
+
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    if (phoneData && typeof phoneData === 'object' && phoneData.当前时间) {
+      currentTime.value = phoneData.当前时间;
+      hasLoadedTavernData.value = true;
+    }
+  } catch (error) {
+    console.warn('[Phone] 加载时间时出错:', error);
+  }
+};
 </script>
 
 <style lang="scss">

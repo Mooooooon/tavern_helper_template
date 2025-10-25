@@ -168,7 +168,10 @@
 
       <!-- Moments View -->
       <div v-show="currentView === 'moments'" class="mimi-moments-view">
-        <MomentsPage @go-back="goBackFromMoments" />
+        <MomentsPage
+          @go-back="goBackFromMoments"
+          :moments-data="momentsData"
+        />
       </div>
     </main>
 
@@ -214,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import MomentsPage from './MomentsPage.vue';
 import { resolveAvatar, convertAvatarToThumbnail } from './utils/avatar';
 
@@ -322,139 +325,12 @@ function handleChatHeaderClick(event: MouseEvent) {
   chatLastTapTime.value = currentTimeMs;
 }
 
-// 模拟数据 - 从准备好的YAML数据中提取
-const contactsData: Record<string, ContactData> = {
-  "甘雨": {
-    "昵称": "清心花茶",
-    "签名": "工作再忙,也要注意休息哦",
-    "头像": "https://pub-a36fa2b8a8044f89a3426fa759085b6c.r2.dev/%E7%AB%8B%E7%BB%98_%E7%94%98%E9%9B%A8.png",
-    "聊天记录": {
-      "1737240000000": {
-        "is_user": true,
-        "message": "周三晚上要不要一起加班冲一下进度？"
-      },
-      "1737245400000": {
-        "is_user": false,
-        "message": "可以，不过我得先把会议纪要整理完。"
-      },
-      "1737503000000": {
-        "is_user": true,
-        "message": "最近工作还顺利吗?"
-      },
-      "1737503100000": {
-        "is_user": false,
-        "message": "还好,就是有点忙。谢谢关心~"
-      },
-      "1737503220000": {
-        "is_user": true,
-        "message": "你也是，别太累了。"
-      },
-      "1737503340000": {
-        "is_user": false,
-        "message": "嗯嗯，知道啦。对了，上次你说的那个项目，进行得怎么样了？"
-      },
-      "1737503460000": {
-        "is_user": true,
-        "message": "项目进展还算顺利，不过遇到了一些技术难题。"
-      },
-      "1737503580000": {
-        "is_user": false,
-        "message": "需要帮忙吗？我这边或许能提供一些参考资料。"
-      },
-      "1737503700000": {
-        "is_user": true,
-        "message": "那太好了，多谢！"
-      },
-      "1737503820000": {
-        "is_user": false,
-        "message": "不客气，我们是朋友嘛。资料我整理一下晚点发给你。"
-      },
-      "1737503940000": {
-        "is_user": true,
-        "message": "好的，等你消息。"
-      },
-      "1737576000000": {
-        "is_user": false,
-        "message": "资料已经发你邮箱了，记得查收。"
-      },
-      "1737579600000": {
-        "is_user": true,
-        "message": "收到了，今晚好好看看，谢谢！"
-      },
-      "1737662400000": {
-        "is_user": false,
-        "message": "明天的答辩如果有需要我也可以帮忙彩排。"
-      }
-    },
-    "空间动态": []
-  },
-  "神里绫华": {
-    "昵称": "白鹭",
-    "签名": "心似冰清，意如刀锋",
-    "头像": "https://pub-a36fa2b8a8044f89a3426fa759085b6c.r2.dev/%E7%AB%8B%E7%BB%98_%E7%A5%9E%E9%87%8C%E7%BB%AB%E5%8D%8E.png",
-    "聊天记录": {
-      "1737520000000": {
-        "is_user": true,
-        "message": "绫华小姐，今天有空一起练习剑术吗？"
-      },
-      "1737521000000": {
-        "is_user": false,
-        "message": "好的，我已经准备好茶点，等你来练习。"
-      },
-      "1737530000000": {
-        "is_user": true,
-        "message": "最近练习感觉进步很大，谢谢你的指导。"
-      },
-      "1737531000000": {
-        "is_user": false,
-        "message": "你很有天赋，继续努力的话一定会有更好的成就。"
-      },
-      "1737540000000": {
-        "is_user": true,
-        "message": "明天祭典上你会表演剑舞吗？"
-      },
-      "1737541000000": {
-        "is_user": false,
-        "message": "是的，我会为大家表演。希望你也能来观看。"
-      },
-      "1737550000000": {
-        "is_user": true,
-        "message": "一定会的！期待看到你的精彩表演。"
-      },
-      "1737551000000": {
-        "is_user": false,
-        "message": "谢谢你的支持，我会准备得更加充分的。"
-      },
-      "1737660000000": {
-        "is_user": false,
-        "message": "今天的练习很愉快，下次我们继续吧。"
-      },
-      "1737661000000": {
-        "is_user": true,
-        "message": "好的，期待下次的练习！"
-      }
-    },
-    "空间动态": []
-  },
-  "八重神子": {
-    "昵称": "油豆腐半价",
-    "签名": "世事如棋，落子无悔",
-    "头像": "https://pub-a36fa2b8a8044f89a3426fa759085b6c.r2.dev/%E7%AB%8B%E7%BB%98_%E5%85%AB%E9%87%8D%E7%A5%9E%E5%AD%90.png",
-    "聊天记录": {},
-    "空间动态": []
-  },
-  "Nova": {
-    "昵称": "Nova",
-    "签名": "",
-    "头像": "char",
-    "聊天记录": {},
-    "空间动态": []
-  }
-};
+// 联系人数据 - 从外部加载
+const contactsData = ref<Record<string, ContactData>>({});
 
 // 计算属性
 const activeContact = computed(() => {
-  return contactsData[activeContactName.value];
+  return contactsData.value[activeContactName.value];
 });
 
 const conversationMessages = computed(() => {
@@ -470,48 +346,60 @@ const conversationMessages = computed(() => {
   return messages;
 });
 
-const hasContacts = computed(() => Object.keys(contactsData).length > 0);
+const hasContacts = computed(() => Object.keys(contactsData.value).length > 0);
 
 const contactSections = computed(() => {
-  if (!hasContacts.value) return [];
+  const contacts = contactsData.value;
+  const contactsEntries = Object.entries(contacts);
+  if (contactsEntries.length === 0) return [];
 
-  return [
-    {
-      title: '联系人',
-      keyPrefix: 'friend',
-      items: Object.entries(contactsData).map(([key, contact]) => ({
-        contactName: key,
-        displayName: contact.昵称,
-        signature: contact.签名,
-        avatar: contact.头像,
-      })),
-    },
-  ];
+  const items: any[] = [];
+  for (let i = 0; i < contactsEntries.length; i++) {
+    const [key, contact] = contactsEntries[i];
+    items.push({
+      contactName: key,
+      displayName: contact.昵称,
+      signature: contact.签名,
+      avatar: contact.头像,
+    });
+  }
+
+  return [{
+    title: '联系人',
+    keyPrefix: 'friend',
+    items,
+  }];
 });
 
 const filteredMessages = computed<MessageData[]>(() => {
+  const contacts = contactsData.value;
+  const contactsEntries = Object.entries(contacts);
+  if (contactsEntries.length === 0) return [];
+
   const now = Date.now();
-  return Object.entries(contactsData)
-    .filter(([_, contact]) => Object.keys(contact.聊天记录).length > 0)
-    .map(([key, contact]) => {
-      const chatRecords = Object.entries(contact.聊天记录);
-      if (chatRecords.length === 0) return null;
+  const messages: MessageData[] = [];
 
-      const lastMessage = chatRecords[chatRecords.length - 1][1];
-      const lastTimestamp = parseInt(chatRecords[chatRecords.length - 1][0]);
+  for (let i = 0; i < contactsEntries.length; i++) {
+    const [key, contact] = contactsEntries[i];
+    const chatRecords = Object.entries(contact.聊天记录);
+    if (chatRecords.length === 0) continue;
 
-      return {
-        contactName: key,
-        name: contact.昵称,
-        lastMessage: lastMessage.message,
-        timestamp: lastTimestamp,
-        avatar: contact.头像,
-        time: formatTimestamp(lastTimestamp, now),
-        unread: Math.random() > 0.7 ? Math.floor(Math.random() * 5) + 1 : undefined,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.timestamp - a.timestamp) as MessageData[];
+    const lastEntry = chatRecords[chatRecords.length - 1];
+    const lastMessage = lastEntry[1];
+    const lastTimestamp = parseInt(lastEntry[0]);
+
+    messages.push({
+      contactName: key,
+      name: contact.昵称,
+      lastMessage: lastMessage.message,
+      timestamp: lastTimestamp,
+      avatar: contact.头像,
+      time: formatTimestamp(lastTimestamp, now),
+      unread: Math.random() > 0.7 ? Math.floor(Math.random() * 5) + 1 : undefined,
+    });
+  }
+
+  return messages.sort((a, b) => b.timestamp - a.timestamp) as MessageData[];
 });
 
 // 方法
@@ -585,62 +473,245 @@ function sendMessage() {
   messageInput.value = '';
 }
 
-onMounted(() => {
-  // 初始化
-  try {
-    // 获取用户头像 - 使用正确的方式
-    const getUserAvatar = async () => {
-      let avatarSrc: string | undefined;
-      let avatarSource: string | undefined;
+// 从外部数据源加载联系人数据
+function loadContactsData(contactsDataParam: Record<string, any>) {
+  console.log('[ChatPage] 加载联系人数据，数量:', Object.keys(contactsDataParam).length);
 
-      if (typeof triggerSlash === 'function') {
-        const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
-        avatarSource = avatarPath;
+  // 转换联系人数据格式
+  const formattedContacts: Record<string, ContactData> = {};
 
-        if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
-          console.log('[ChatPage] 获取到用户头像路径:', avatarPath);
+  for (const [contactName, contactInfo] of Object.entries(contactsDataParam)) {
+    if (!contactInfo || typeof contactInfo !== 'object') {
+      continue;
+    }
 
-          // 检查是否为char URL
-          if (avatarPath === 'char' || avatarPath.startsWith('char:')) {
-            console.log('[ChatPage] 检测到char URL，获取角色头像');
-            const charName = avatarPath.startsWith('char:') ? avatarPath.substring(5) : 'current';
-            const resolvedChar = resolveAvatar(avatarPath);
-            avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
-            console.log('[ChatPage] char头像转换后的缩略图URL:', avatarSrc);
-          } else {
-            // 普通用户头像路径，转换为缩略图
-            console.log('[ChatPage] 普通用户头像路径，转换为缩略图');
-            avatarSrc = convertAvatarToThumbnail(avatarPath);
-            console.log('[ChatPage] 转换后的缩略图URL:', avatarSrc);
-          }
-        } else {
-          console.log('[ChatPage] 未获取到用户头像路径，尝试使用char头像');
-          const resolvedChar = resolveAvatar('char');
-          avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
-          console.log('[ChatPage] 使用默认char头像，转换后的缩略图URL:', avatarSrc);
+    const info = contactInfo as any;
+
+    // 处理头像
+    let processedAvatar = info.头像 || '';
+    if (processedAvatar && (processedAvatar === 'char' || processedAvatar.startsWith('char:'))) {
+      const resolvedAvatar = resolveAvatar(processedAvatar);
+      processedAvatar = resolvedAvatar ? convertAvatarToThumbnail(resolvedAvatar) : processedAvatar;
+    } else if (processedAvatar) {
+      processedAvatar = convertAvatarToThumbnail(processedAvatar);
+    }
+
+    formattedContacts[contactName] = {
+      昵称: info.昵称 || contactName,
+      签名: info.签名 || '',
+      头像: processedAvatar,
+      聊天记录: info.聊天记录 || {},
+      空间动态: info.空间动态 || []
+    };
+  }
+
+  // 更新内部联系人数据
+  contactsData.value = formattedContacts;
+  console.log('[ChatPage] 联系人数据加载完成，共处理', Object.keys(formattedContacts).length, '个联系人');
+}
+
+// 获取动态数据（优化性能）
+const momentsData = computed(() => {
+  const contacts = contactsData.value;
+  const contactsCount = Object.keys(contacts).length;
+  if (contactsCount === 0) return [];
+
+  const moments: any[] = [];
+  const now = Date.now();
+
+  // 避免在循环中重复调用formatMomentTimestamp
+  const cache = new Map<string, string>();
+
+  for (const [contactName, contact] of Object.entries(contacts)) {
+    const moments = contact.空间动态;
+    if (!moments || !Array.isArray(moments)) continue;
+
+    for (let i = 0; i < moments.length; i++) {
+      const moment = moments[i];
+      if (!moment || !moment.时间 || !moment.内容) continue;
+
+      // 缓存时间戳计算结果
+      const timeKey = moment.时间.toString();
+      let timestamp = cache.get(timeKey);
+      if (!timestamp) {
+        timestamp = formatMomentTimestamp(moment.时间, now);
+        cache.set(timeKey, timestamp);
+      }
+
+      // 优化评论处理
+      const comments: any[] = [];
+      const commentList = moment.评论列表;
+      if (commentList && Array.isArray(commentList)) {
+        for (let j = 0; j < commentList.length; j++) {
+          const comment = commentList[j];
+          if (!comment || !comment.发言内容) continue;
+          comments.push({
+            id: `${contactName}-${moment.时间}-${j}`,
+            author: comment.ID || `访客${j + 1}`,
+            content: comment.发言内容
+          });
         }
       }
 
-      // 如果通过triggerSlash没有获取到头像，尝试使用char头像
-      if (!avatarSrc) {
-        console.log('[ChatPage] 主要方法失败，使用char头像作为备用');
-        avatarSource = 'char';
-        const resolvedChar = resolveAvatar('char');
-        avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
-        console.log('[ChatPage] 备用char头像转换后的缩略图URL:', avatarSrc);
-      }
+      moments.push({
+        id: `${contactName}-${moment.时间}-${i}`,
+        contactName,
+        name: contact.昵称 || contactName,
+        content: moment.内容,
+        timestamp,
+        timeValue: moment.时间,
+        comments,
+        avatar: contact.头像
+      });
+    }
+  }
 
-      if (avatarSrc) {
-        userAvatar.value = avatarSrc;
-        console.log('[ChatPage] 用户头像设置成功:', avatarSrc);
-      } else {
-        console.log('[ChatPage] 用户头像获取失败，使用默认头像');
-      }
-    };
+  return moments.sort((a, b) => b.timeValue - a.timeValue);
+});
 
-    getUserAvatar();
+// 格式化动态时间戳
+function formatMomentTimestamp(timestamp: number, nowMs: number): string {
+  const now = new Date(nowMs);
+  const date = new Date(timestamp);
+  const diff = nowMs - timestamp;
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  const timeText = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+  if (diff < 0) {
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
+  }
+
+  if (diff < 60 * 1000) {
+    return '刚刚';
+  }
+
+  if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000));
+    return `${minutes}分钟前`;
+  }
+
+  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
+
+  if (dayDiff === 0) {
+    return `今天 ${timeText}`;
+  }
+
+  if (dayDiff === 1) {
+    return `昨天 ${timeText}`;
+  }
+
+  if (dayDiff === 2) {
+    return `前天 ${timeText}`;
+  }
+
+  if (dayDiff > 2 && dayDiff < 7) {
+    return `${dayDiff}天前 ${timeText}`;
+  }
+
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
+}
+
+// 公开方法
+defineExpose({
+  loadContactsData
+});
+
+// 数据监听和加载
+const setupTavernDataListener = () => {
+  // 初始化时立即加载一次数据
+  loadTavernData();
+
+  // 监听MVU变量变化事件
+  if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTavernData);
+  }
+
+  // 设置定时检查作为备选方案（降低频率）
+  const checkInterval = setInterval(loadTavernData, 30000); // 30秒而不是5秒
+
+  // 清理函数
+  return () => clearInterval(checkInterval);
+};
+
+const loadTavernData = async () => {
+  try {
+    // 等待MVU初始化
+    if (typeof waitGlobalInitialized === 'function') {
+      await waitGlobalInitialized('Mvu');
+    }
+
+    if (typeof Mvu === 'undefined') return;
+
+    const mvuData = Mvu.getMvuData({ type: 'chat' });
+    const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    if (!phoneData || typeof phoneData !== 'object' || !phoneData.联系人) {
+      return;
+    }
+
+    // 加载联系人数据
+    loadContactsData(phoneData.联系人);
+
   } catch (error) {
-    console.warn('[ChatPage] 获取用户头像时出错:', error);
+    console.warn('[ChatPage] 加载酒馆数据时出错:', error);
+  }
+};
+
+// 监听联系人数据变化（性能优化：浅层监听 + 手动检查）
+watch(() => {
+  return {
+    keys: Object.keys(contactsData.value),
+    count: Object.keys(contactsData.value).length
+  };
+}, () => {
+  // 只需要知道数据变化了，计算属性会自动更新
+}, { flush: 'post' });
+
+onMounted(() => {
+  // 初始化
+  try {
+    // 启动酒馆数据监听器
+    const cleanup = setupTavernDataListener();
+
+    // 组件卸载时清理监听器
+    onUnmounted(() => {
+      cleanup?.();
+    });
+
+    // 延迟获取用户头像，避免影响初始渲染性能
+    setTimeout(async () => {
+      if (typeof triggerSlash !== 'function') return;
+
+      try {
+        const avatarPath = await triggerSlash('/pass {{userAvatarPath}}');
+        let avatarSrc: string | undefined;
+
+        if (typeof avatarPath === 'string' && avatarPath && avatarPath !== 'undefined') {
+          // 检查是否为char URL
+          if (avatarPath === 'char' || avatarPath.startsWith('char:')) {
+            const resolvedChar = resolveAvatar(avatarPath);
+            avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
+          } else {
+            // 普通用户头像路径，转换为缩略图
+            avatarSrc = convertAvatarToThumbnail(avatarPath);
+          }
+        } else {
+          // 使用默认char头像
+          const resolvedChar = resolveAvatar('char');
+          avatarSrc = resolvedChar ? convertAvatarToThumbnail(resolvedChar) : undefined;
+        }
+
+        if (avatarSrc) {
+          userAvatar.value = avatarSrc;
+        }
+      } catch (error) {
+        console.warn('[ChatPage] 获取用户头像失败:', error);
+      }
+    }, 1000); // 延迟1秒获取头像
+  } catch (error) {
+    console.warn('[ChatPage] 初始化时出错:', error);
   }
 });
 </script>

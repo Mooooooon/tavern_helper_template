@@ -66,9 +66,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 
-// 定义发射事件
+// 定义发射事件和props
 const emit = defineEmits<{
   goBack: []
+}>();
+
+const props = defineProps<{
+  momentsData?: any[]
 }>();
 
 interface MomentComment {
@@ -116,83 +120,11 @@ const momentsHeaderStyle = computed(() => ({
   color: '#222222',
 }));
 
-function formatMomentTimestamp(timestamp: number, nowMs: number): string {
-  const now = new Date(nowMs);
-  const date = new Date(timestamp);
-  const diff = nowMs - timestamp;
-  const pad = (value: number) => value.toString().padStart(2, '0');
-  const timeText = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
-  if (diff < 0) {
-    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
-  }
-
-  if (diff < 60 * 1000) {
-    return '刚刚';
-  }
-
-  if (diff < 60 * 60 * 1000) {
-    const minutes = Math.floor(diff / (60 * 1000));
-    return `${minutes}分钟前`;
-  }
-
-  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
-
-  if (dayDiff === 0) {
-    return `今天 ${timeText}`;
-  }
-
-  if (dayDiff === 1) {
-    return `昨天 ${timeText}`;
-  }
-
-  if (dayDiff === 2) {
-    return `前天 ${timeText}`;
-  }
-
-  if (dayDiff > 2 && dayDiff < 7) {
-    return `${dayDiff}天前 ${timeText}`;
-  }
-
-  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
-}
-
-// 模拟动态数据 - 实际项目中应该从store获取
-const currentTime = ref(Date.now());
 const moments = computed<MomentItem[]>(() => {
-  const now = currentTime.value;
-  // 这里是模拟数据，实际项目中应该从store获取
-  const mockMoments = [
-    {
-      id: 'moment-1',
-      contactName: '甘雨',
-      name: '清心花茶',
-      content: '今天天气真好，适合在璃月港散步~',
-      timestamp: formatMomentTimestamp(Date.now() - 2 * 60 * 60 * 1000, now),
-      timeValue: Date.now() - 2 * 60 * 60 * 1000,
-      comments: [
-        { id: 'comment-1', author: '访客1', content: '璃月港的风景确实很美！' },
-        { id: 'comment-2', author: '访客2', content: '下次一起去呀' }
-      ],
-      avatar: 'https://pub-a36fa2b8a8044f89a3426fa759085b6c.r2.dev/%E7%AB%8B%E7%BB%98_%E7%94%98%E9%9B%A8.png'
-    },
-    {
-      id: 'moment-2',
-      contactName: '神里绫华',
-      name: '白鹭',
-      content: '剑术练习有了新的突破，心情很好。',
-      timestamp: formatMomentTimestamp(Date.now() - 5 * 60 * 60 * 1000, now),
-      timeValue: Date.now() - 5 * 60 * 60 * 1000,
-      comments: [
-        { id: 'comment-3', author: '访客3', content: '绫华小姐好厉害！' }
-      ],
-      avatar: 'https://pub-a36fa2b8a8044f89a3426fa759085b6c.r2.dev/%E7%AB%8B%E7%BB%98_%E7%A5%9E%E9%87%8C%E7%BB%AB%E5%8D%8E.png'
-    }
-  ];
-
-  return mockMoments;
+  return (props.momentsData && Array.isArray(props.momentsData))
+    ? props.momentsData
+    : [];
 });
 
 function goBack() {
