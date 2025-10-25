@@ -33,11 +33,15 @@ $(() => {
   setTimeout(() => {
     const $appContainer = $('<div id="mimi-phone-app"></div>');
 
-    window.parent.$(window.parent.document.body).append($appContainer);
+    (window.parent as any).$(window.parent.document.body).append($appContainer);
     teleport_style();
 
     const phoneApp = createApp(Phone);
-    const phoneInstance = phoneApp.mount($appContainer[0]);
+    const phoneInstance = phoneApp.mount($appContainer[0]) as unknown as {
+      visible: boolean;
+      showPhone: () => Promise<void>;
+      hidePhone: () => Promise<void>;
+    };
 
     eventOn(getButtonEvent('召唤手机'), () => {
       if (phoneInstance.visible) {
@@ -49,7 +53,7 @@ $(() => {
 
     $(window).on('pagehide', () => {
       phoneApp.unmount();
-      window.parent.$($appContainer).remove();
+      (window.parent as any).$($appContainer).remove();
       deteleport_style();
     });
   }, 500);

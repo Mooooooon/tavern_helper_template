@@ -3,7 +3,7 @@
     ref="wrapperRef"
     v-bind="forwardedAttrs"
     :class="['mimi-drag-wrapper', attrs.class]"
-    :style="[wrapperStyle, attrs.style]"
+    :style="[wrapperStyle, attrs.style as any]"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
     @mouseup="handleMouseUp"
@@ -14,17 +14,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useAttrs, watch, onMounted, onBeforeUnmount } from 'vue';
+import { computed, reactive, ref, useAttrs, watch } from 'vue';
 
 defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(
   defineProps<{
-    x: number
-    y: number
-    z?: number | string
-    dragHandle?: string
-    disabled?: boolean
+    x: number;
+    y: number;
+    z?: number | string;
+    dragHandle?: string;
+    disabled?: boolean;
   }>(),
   {
     z: 'auto',
@@ -34,8 +34,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  dragging: [{ left: number; top: number; width: number; height: number }]
-  dragstop: [{ left: number; top: number; width: number; height: number }]
+  dragging: [{ left: number; top: number; width: number; height: number }];
+  dragstop: [{ left: number; top: number; width: number; height: number }];
 }>();
 
 const attrs = useAttrs();
@@ -121,7 +121,7 @@ function handleMouseMove(event: MouseEvent) {
   });
 }
 
-function handleMouseUp(event: MouseEvent) {
+function handleMouseUp() {
   if (!isDragging.value) return;
 
   isDragging.value = false;
@@ -133,7 +133,6 @@ function handleMouseUp(event: MouseEvent) {
     height: wrapperRef.value?.offsetHeight || 0,
   });
 }
-
 </script>
 
 <style scoped>

@@ -1,10 +1,14 @@
 <template>
   <div class="mimi-chat-app">
     <!-- Chat Header -->
-    <header v-show="currentView !== 'conversation' && currentView !== 'moments'" class="mimi-chat-header" :style="chatStatusBarStyle">
+    <header
+      v-show="currentView !== 'conversation' && currentView !== 'moments'"
+      class="mimi-chat-header"
+      :style="chatStatusBarStyle"
+    >
       <div class="mimi-profile">
         <div class="mimi-avatar">
-          <img :src="userAvatar || ''" alt="Avatar" @error="handleAvatarError">
+          <img :src="userAvatar || ''" alt="Avatar" @error="handleAvatarError" />
         </div>
         <div class="mimi-profile-info">
           <span class="mimi-profile-name">我的账号</span>
@@ -17,26 +21,30 @@
       <div class="mimi-actions">
         <button class="mimi-icon-button" type="button" aria-label="添加联系人">
           <svg viewBox="0 0 24 24">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
         </button>
       </div>
     </header>
 
     <!-- Conversation Header -->
-    <header v-show="currentView === 'conversation'" class="mimi-chat-header mimi-chat-header--conversation" :style="conversationHeaderStyle">
+    <header
+      v-show="currentView === 'conversation'"
+      class="mimi-chat-header mimi-chat-header--conversation"
+      :style="conversationHeaderStyle"
+    >
       <div class="mimi-conversation-header">
-        <button class="mimi-header-button mimi-header-button--back" type="button" aria-label="返回聊天列表" @click="goBack">
+        <button
+          class="mimi-header-button mimi-header-button--back"
+          type="button"
+          aria-label="返回聊天列表"
+          @click="goBack"
+        >
           <svg viewBox="0 0 24 24">
             <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
           </svg>
         </button>
-        <div class="mimi-conversation-info" v-if="activeContact">
+        <div v-if="activeContact" class="mimi-conversation-info">
           <span class="mimi-conversation-name">{{ activeContact.昵称 }}</span>
           <span class="mimi-conversation-meta">{{ activeContact.签名 }}</span>
         </div>
@@ -64,7 +72,7 @@
             @click="openConversation(message.contactName)"
           >
             <div class="mimi-avatar-wrapper">
-              <img :src="message.avatar || ''" alt="avatar">
+              <img :src="message.avatar || ''" alt="avatar" />
             </div>
             <div class="mimi-message-details">
               <div class="mimi-message-top">
@@ -91,11 +99,7 @@
       <!-- Contacts List View -->
       <div v-show="currentView === 'messages' && activeTab === 'contacts'" class="mimi-contacts-page">
         <div v-if="hasContacts" class="mimi-contacts-list">
-          <div
-            v-for="section in contactSections"
-            :key="section.title"
-            class="mimi-contact-section"
-          >
+          <div v-for="section in contactSections" :key="section.title" class="mimi-contact-section">
             <div class="mimi-section-title">{{ section.title }}</div>
             <button
               v-for="contact in section.items"
@@ -105,7 +109,7 @@
               @click="openConversation(contact.contactName)"
             >
               <div class="mimi-avatar-wrapper">
-                <img :src="contact.avatar || ''" alt="联系人头像">
+                <img :src="contact.avatar || ''" alt="联系人头像" />
               </div>
               <div class="mimi-contact-details">
                 <span class="mimi-contact-id">{{ contact.displayName }}</span>
@@ -135,7 +139,7 @@
             :class="{ 'mimi-message--user': message.is_user }"
           >
             <div v-if="!message.is_user" class="mimi-message-avatar">
-              <img :src="activeContact?.头像 || ''" alt="avatar">
+              <img :src="activeContact?.头像 || ''" alt="avatar" />
             </div>
             <div class="mimi-message-content">
               <div class="mimi-message-bubble">
@@ -155,10 +159,10 @@
               placeholder="输入消息..."
               class="mimi-message-input"
               @keypress.enter="sendMessage"
-            >
+            />
             <button class="mimi-send-button" @click="sendMessage">
               <svg viewBox="0 0 24 24">
-                <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" fill="currentColor"/>
+                <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" fill="currentColor" />
               </svg>
             </button>
           </div>
@@ -167,15 +171,16 @@
 
       <!-- Moments View -->
       <div v-show="currentView === 'moments'" class="mimi-moments-view">
-        <MomentsPage
-          @go-back="goBackFromMoments"
-          :moments-data="momentsData"
-        />
+        <MomentsPage :moments-data="momentsData" @go-back="goBackFromMoments" />
       </div>
     </main>
 
     <!-- Chat Footer -->
-    <footer v-show="currentView === 'messages' || currentView === 'contacts'" class="mimi-chat-footer" :style="chatStatusBarStyle">
+    <footer
+      v-show="currentView === 'messages' || currentView === 'contacts'"
+      class="mimi-chat-footer"
+      :style="chatStatusBarStyle"
+    >
       <nav>
         <button
           class="mimi-nav-item"
@@ -183,7 +188,10 @@
           @click="activeTab = 'messages'"
         >
           <svg viewBox="0 0 24 24" class="mimi-nav-icon">
-            <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            <path
+              fill="currentColor"
+              d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
+            />
           </svg>
           <span>消息</span>
         </button>
@@ -193,7 +201,10 @@
           @click="activeTab = 'contacts'"
         >
           <svg viewBox="0 0 24 24" class="mimi-nav-icon">
-            <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            <path
+              fill="currentColor"
+              d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+            />
           </svg>
           <span>联系人</span>
         </button>
@@ -222,7 +233,7 @@ import { resolveAvatar, convertAvatarToThumbnail } from './utils/avatar';
 
 // 定义发射事件
 const emit = defineEmits<{
-  'go-home': []
+  'go-home': [];
 }>();
 
 // 接口定义
@@ -250,7 +261,7 @@ interface MessageData {
 }
 
 // 组件状态
-const currentView = ref<'messages' | 'conversation' | 'moments'>('messages');
+const currentView = ref<'messages' | 'conversation' | 'moments' | 'contacts'>('messages');
 const activeTab = ref<'messages' | 'contacts' | 'moments'>('messages');
 const activeContactName = ref<string>('');
 const messageInput = ref('');
@@ -301,7 +312,6 @@ const conversationHeaderStyle = computed(() => ({
   color: '#222222',
 }));
 
-
 // 联系人数据 - 从外部加载
 const contactsData = ref<Record<string, ContactData>>({});
 
@@ -319,7 +329,7 @@ const conversationMessages = computed(() => {
       const timestamp = new Date(timeStr).getTime();
       return {
         ...msg,
-        timestamp: isNaN(timestamp) ? 0 : timestamp
+        timestamp: isNaN(timestamp) ? 0 : timestamp,
       };
     })
     .sort((a, b) => a.timestamp - b.timestamp);
@@ -345,11 +355,13 @@ const contactSections = computed(() => {
     });
   }
 
-  return [{
-    title: '联系人',
-    keyPrefix: 'friend',
-    items,
-  }];
+  return [
+    {
+      title: '联系人',
+      keyPrefix: 'friend',
+      items,
+    },
+  ];
 });
 
 const filteredMessages = computed<MessageData[]>(() => {
@@ -436,10 +448,6 @@ function goBack() {
   activeContactName.value = '';
 }
 
-function goToHome() {
-  emit('go-home');
-}
-
 function goToMoments() {
   currentView.value = 'moments';
   loadTavernData();
@@ -487,7 +495,7 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
       签名: info.签名 || '',
       头像: processedAvatar,
       聊天记录: info.聊天记录 || {},
-      空间动态: info.空间动态 || []
+      空间动态: info.空间动态 || [],
     };
   }
 
@@ -519,7 +527,7 @@ const momentsData = computed(() => {
           comments.push({
             id: `${contactName}-${moment.时间}-${j}`,
             author: comment.ID || `访客${j + 1}`,
-            content: comment.发言内容
+            content: comment.发言内容,
           });
         }
       }
@@ -536,7 +544,7 @@ const momentsData = computed(() => {
         timestamp: formatMomentTimestamp(validTimestamp, now),
         timeValue: validTimestamp,
         comments,
-        avatar: contact.头像
+        avatar: contact.头像,
       });
     }
   }
@@ -590,7 +598,7 @@ function formatMomentTimestamp(timestamp: number, nowMs: number): string {
 
 // 公开方法
 defineExpose({
-  loadContactsData
+  loadContactsData,
 });
 
 // 数据监听和加载
@@ -633,14 +641,18 @@ const loadTavernData = async () => {
 };
 
 // 监听联系人数据变化（性能优化：浅层监听 + 手动检查）
-watch(() => {
-  return {
-    keys: Object.keys(contactsData.value),
-    count: Object.keys(contactsData.value).length
-  };
-}, () => {
-  // 只需要知道数据变化了，计算属性会自动更新
-}, { flush: 'post' });
+watch(
+  () => {
+    return {
+      keys: Object.keys(contactsData.value),
+      count: Object.keys(contactsData.value).length,
+    };
+  },
+  () => {
+    // 只需要知道数据变化了，计算属性会自动更新
+  },
+  { flush: 'post' },
+);
 
 onMounted(() => {
   // 初始化
@@ -859,7 +871,8 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.mimi-messages-page, .mimi-contacts-page {
+.mimi-messages-page,
+.mimi-contacts-page {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -871,7 +884,8 @@ onMounted(() => {
   -ms-overflow-style: none;
 }
 
-.mimi-message-list, .mimi-contacts-list {
+.mimi-message-list,
+.mimi-contacts-list {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1252,11 +1266,11 @@ nav {
 }
 
 /* 隔离手机应用的输入框样式，覆盖酒馆主题 */
-.mimi-chat-app input[type="text"],
-.mimi-chat-app input[type="number"],
-.mimi-chat-app input[type="switch"],
+.mimi-chat-app input[type='text'],
+.mimi-chat-app input[type='number'],
+.mimi-chat-app input[type='switch'],
 .mimi-chat-app input:not([type]),
-.mimi-chat-app textarea:not([type="search"]) {
+.mimi-chat-app textarea:not([type='search']) {
   background-color: #f6f6f7 !important;
   border: 1px solid #e5e5e8 !important;
   color: #1f1f1f !important;

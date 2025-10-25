@@ -1,7 +1,12 @@
 <template>
   <div class="mimi-moments-page">
     <header class="mimi-moments-header" :style="momentsHeaderStyle">
-      <button class="mimi-header-button mimi-header-button--back" type="button" aria-label="返回聊天列表" @click="goBack">
+      <button
+        class="mimi-header-button mimi-header-button--back"
+        type="button"
+        aria-label="返回聊天列表"
+        @click="goBack"
+      >
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
         </svg>
@@ -10,12 +15,7 @@
       <div class="mimi-actions">
         <button class="mimi-icon-button" type="button" aria-label="发布动态">
           <svg viewBox="0 0 24 24">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
         </button>
       </div>
@@ -25,14 +25,17 @@
       <article v-for="moment in moments" :key="moment.id" class="mimi-moment-card">
         <header class="mimi-moment-card-header">
           <div class="mimi-moment-user">
-            <img :src="moment.avatar || ''" alt="" class="mimi-moment-avatar">
+            <img :src="moment.avatar || ''" alt="" class="mimi-moment-avatar" />
             <div class="mimi-moment-user-info">
               <span class="mimi-moment-name">{{ moment.name }}</span>
             </div>
           </div>
           <button class="mimi-moment-more" type="button" aria-label="更多">
             <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+              <path
+                fill="currentColor"
+                d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"
+              />
             </svg>
           </button>
         </header>
@@ -42,11 +45,12 @@
         </div>
         <ul v-if="moment.comments.length" class="mimi-moment-comments">
           <li v-for="comment in moment.comments" :key="comment.id" class="mimi-moment-comment">
-            <span class="mimi-moment-comment-author">{{ comment.author }}</span>：{{ comment.content }}
+            <span class="mimi-moment-comment-author">{{ comment.author }}</span
+            >：{{ comment.content }}
           </li>
         </ul>
         <div class="mimi-moment-reply">
-          <input class="mimi-moment-reply-input" type="text" placeholder="说点什么吧">
+          <input class="mimi-moment-reply-input" type="text" placeholder="说点什么吧" />
         </div>
       </article>
 
@@ -64,15 +68,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 
 // 定义发射事件和props
 const emit = defineEmits<{
-  goBack: []
+  goBack: [];
 }>();
 
 const props = defineProps<{
-  momentsData?: any[]
+  momentsData?: any[];
 }>();
 
 interface MomentComment {
@@ -92,16 +96,14 @@ interface MomentItem {
   avatar?: string;
 }
 
-
 // 动态页面状态栏颜色计算
 const momentsHeaderStyle = computed(() => ({
   backgroundColor: '#ffffff',
   color: '#222222',
 }));
 
-
 const moments = computed<MomentItem[]>(() => {
-  return (props.momentsData && Array.isArray(props.momentsData)) ? props.momentsData : [];
+  return props.momentsData && Array.isArray(props.momentsData) ? props.momentsData : [];
 });
 
 function goBack() {
@@ -338,11 +340,11 @@ function goBack() {
 }
 
 /* 隔离手机应用的输入框样式，覆盖酒馆主题 */
-.mimi-moments-page input[type="text"],
-.mimi-moments-page input[type="number"],
-.mimi-moments-page input[type="switch"],
+.mimi-moments-page input[type='text'],
+.mimi-moments-page input[type='number'],
+.mimi-moments-page input[type='switch'],
 .mimi-moments-page input:not([type]),
-.mimi-moments-page textarea:not([type="search"]) {
+.mimi-moments-page textarea:not([type='search']) {
   background-color: #f3f4f6 !important;
   border: none !important;
   color: #2c2c2e !important;

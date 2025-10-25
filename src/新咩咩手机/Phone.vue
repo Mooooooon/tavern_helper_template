@@ -95,11 +95,7 @@
             </div>
 
             <!-- Chat Page -->
-            <ChatPage
-              v-show="currentView === 'chat'"
-              ref="chatPageRef"
-              @go-home="goHome"
-            />
+            <ChatPage v-show="currentView === 'chat'" ref="chatPageRef" @go-home="goHome" />
           </div>
         </div>
       </div>
@@ -158,10 +154,13 @@ function handleDrag(rect: { left: number; top: number; width: number; height: nu
 
 function handleDragStop(rect: { left: number; top: number; width: number; height: number }) {
   handleDrag(rect);
-  localStorage.setItem('mimi-phone-position', JSON.stringify({
-    left: rect.left,
-    top: rect.top,
-  }));
+  localStorage.setItem(
+    'mimi-phone-position',
+    JSON.stringify({
+      left: rect.left,
+      top: rect.top,
+    }),
+  );
 }
 
 onMounted(() => {
@@ -201,7 +200,7 @@ const hidePhone = async () => {
 defineExpose({
   showPhone,
   hidePhone,
-  visible
+  visible,
 });
 
 let cleanup: (() => void) | null = null;
@@ -315,9 +314,9 @@ const setupTimeListener = () => {
   if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
     eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
     // 尝试获取事件移除函数（如果 MVU 提供的话）
-    if (typeof eventOff === 'function') {
+    if (typeof eventRemoveListener === 'function') {
       mvuListenerRemover = () => {
-        eventOff(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
+        eventRemoveListener(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
       };
     }
   }
@@ -492,7 +491,9 @@ const loadTimeFromTavern = async () => {
   font-weight: 600;
   cursor: grab;
   user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .mimi-phone-status-bar:active {
@@ -528,7 +529,12 @@ const loadTimeFromTavern = async () => {
   padding: 32px 22px 42px;
   box-sizing: border-box;
   color: #202432;
-  background: linear-gradient(180deg, rgba(246, 248, 255, 0.82) 0%, rgba(240, 242, 255, 0.92) 60%, rgba(229, 233, 255, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(246, 248, 255, 0.82) 0%,
+    rgba(240, 242, 255, 0.92) 60%,
+    rgba(229, 233, 255, 0.96) 100%
+  );
 }
 
 .mimi-home-header {

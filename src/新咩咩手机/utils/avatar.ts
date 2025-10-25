@@ -8,7 +8,7 @@ export function getCacheStats() {
     preloadCache: avatarCache.size,
     thumbnailCache: thumbnailCache.size,
     resolveCache: resolveCache.size,
-    globalCache: window.__phoneAvatarCache?.size || 0
+    globalCache: window.__phoneAvatarCache?.size || 0,
   };
 }
 
@@ -18,14 +18,6 @@ export function logCacheStats(context: string) {
 }
 
 type CharAvatarGetter = (character: string, cache?: boolean) => string | undefined;
-
-declare global {
-  interface Window {
-    TavernHelper?: {
-      getCharAvatarPath?: CharAvatarGetter;
-    };
-  }
-}
 
 function getCharAvatarGetter(): CharAvatarGetter | undefined {
   const directGetter = (globalThis as any)?.getCharAvatarPath;
@@ -111,7 +103,7 @@ function convertToThumbnailUrl(originalUrl: string): string {
           original: originalUrl,
           type: thumbnailType,
           file: fileName,
-          thumbnail: thumbnailUrl
+          thumbnail: thumbnailUrl,
         });
 
         // 缓存结果
