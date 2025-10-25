@@ -59,14 +59,14 @@
 
               <section class="mimi-home-dock">
                 <div class="mimi-home-dock__glass">
-                  <button class="mimi-dock-app mimi-dock-app--phone" type="button" aria-label="电话">
+                  <button class="mimi-dock-app mimi-dock-app--phone" type="button" aria-label="电话" @click="handlePhoneClick">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M7.21 3.75 8.8 3a1.9 1.9 0 0 1 2.51 1l.82 2.01a1.9 1.9 0 0 1-.51 2.11l-.83.8a11.18 11.18 0 0 0 7.1 7.1l.8-.83a1.9 1.9 0 0 1 2.11-.51l2.01.82a1.9 1.9 0 0 1 1 2.51l-.75 1.59a2.8 2.8 0 0 1-3.02 1.52c-3.9-.63-7.21-2.34-9.92-5.05s-4.42-6-5.05-9.92a2.8 2.8 0 0 1 1.53-3.02z"
                       />
                     </svg>
                   </button>
-                  <button class="mimi-dock-app mimi-dock-app--message" type="button" aria-label="短信">
+                  <button class="mimi-dock-app mimi-dock-app--message" type="button" aria-label="短信" @click="handleMessageClick">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M4.5 4h15A2.5 2.5 0 0 1 22 6.5v8A2.5 2.5 0 0 1 19.5 17H15l-3 3-3-3H4.5A2.5 2.5 0 0 1 2 14.5v-8A2.5 2.5 0 0 1 4.5 4zm0 2A.5.5 0 0 0 4 6.5v8a.5.5 0 0 0 .5.5h5.79L12 17.21 13.71 15h5.79a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"
@@ -74,7 +74,7 @@
                       <path d="M5 7h14v2H5zm0 4h9v2H5z" />
                     </svg>
                   </button>
-                  <button class="mimi-dock-app mimi-dock-app--gallery" type="button" aria-label="相册">
+                  <button class="mimi-dock-app mimi-dock-app--gallery" type="button" aria-label="相册" @click="handleGalleryClick">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M5 4h14a2 2 0 0 1 2 2v8.78a2 2 0 0 1-.63 1.46l-3.09 2.93a2 2 0 0 1-1.37.54H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h10.91L19 15.79V6z"
@@ -82,7 +82,7 @@
                       <path d="M8 14.5 10.5 11l2.5 3.5 2-2.5L18 16H8zM15 8a2 2 0 1 1-2-2 2 2 0 0 1 2 2z" />
                     </svg>
                   </button>
-                  <button class="mimi-dock-app mimi-dock-app--music" type="button" aria-label="音乐">
+                  <button class="mimi-dock-app mimi-dock-app--music" type="button" aria-label="音乐" @click="handleMusicClick">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M19 3v12.26A3.75 3.75 0 1 1 17 12V8.53l-6 1.33V17.26A3.75 3.75 0 1 1 9 12V5.75a1 1 0 0 1 .78-.98l8-1.78A1 1 0 0 1 19 4z"
@@ -295,7 +295,23 @@ function handleStatusBarClick(event: MouseEvent) {
 }
 
 function goSettings() {
-  // TODO: 实现设置页面
+  toastr.info('设置页面功能暂未完成，敬请期待！', '提示');
+}
+
+function handlePhoneClick() {
+  toastr.info('电话功能暂未完成，敬请期待！', '提示');
+}
+
+function handleMessageClick() {
+  toastr.info('短信功能暂未完成，敬请期待！', '提示');
+}
+
+function handleGalleryClick() {
+  toastr.info('相册功能暂未完成，敬请期待！', '提示');
+}
+
+function handleMusicClick() {
+  toastr.info('音乐功能暂未完成，敬请期待！', '提示');
 }
 
 // 监听酒馆变量变化并更新时间
@@ -466,6 +482,9 @@ const loadTimeFromTavern = async () => {
   user-select: none;
   pointer-events: auto;
   transition: none;
+  /* 移动端触摸优化 */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mimi-phone-drag-handle * {
@@ -628,7 +647,7 @@ const loadTimeFromTavern = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: default;
+  cursor: pointer;
   box-shadow: 0 10px 22px rgba(62, 78, 130, 0.24);
   transition: transform 0.15s ease;
   padding: 0;

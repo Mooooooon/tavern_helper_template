@@ -8,6 +8,10 @@
     @mousemove="handleMouseMove"
     @mouseup="handleMouseUp"
     @mouseleave="handleMouseUp"
+    @touchstart="handleTouchStart"
+    @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd"
+    @touchcancel="handleTouchEnd"
   >
     <slot />
   </div>
@@ -133,10 +137,71 @@ function handleMouseUp() {
     height: wrapperRef.value?.offsetHeight || 0,
   });
 }
+
+function handleTouchStart(event: TouchEvent) {
+  if (props.disabled) {
+    return;
+  }
+
+  // 如果指定了拖动句柄，检查触摸是否在句柄元素内
+  if (props.dragHandle) {
+    const target = event.target as HTMLElement;
+    const dragHandleElement = target.closest(`.${props.dragHandle}`);
+    if (!dragHandleElement) {
+      return; // 触摸不在拖动句柄内，不启动拖动
+    }
+  }
+
+  const touch = event.touches[0];
+  startX = touch.clientX;
+  startY = touch.clientY;
+  originalLeft = localPosition.left;
+  originalTop = localPosition.top;
+  isDragging.value = true;
+
+  event.preventDefault();
+}
+
+function handleTouchMove(event: TouchEvent) {
+  if (!isDragging.value) {
+    return;
+  }
+
+  const touch = event.touches[0];
+  const dx = touch.clientX - startX;
+  const dy = touch.clientY - startY;
+
+  localPosition.left = originalLeft + dx;
+  localPosition.top = originalTop + dy;
+
+  emit('dragging', {
+    left: localPosition.left,
+    top: localPosition.top,
+    width: wrapperRef.value?.offsetWidth || 0,
+    height: wrapperRef.value?.offsetHeight || 0,
+  });
+}
+
+function handleTouchEnd() {
+  if (!isDragging.value) return;
+
+  isDragging.value = false;
+
+  emit('dragstop', {
+    left: localPosition.left,
+    top: localPosition.top,
+    width: wrapperRef.value?.offsetWidth || 0,
+    height: wrapperRef.value?.offsetHeight || 0,
+  });
+}
 </script>
 
 <style scoped>
 .mimi-drag-wrapper {
   position: fixed;
+  /* 移动端触摸优化 */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 </style>

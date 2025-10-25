@@ -19,7 +19,7 @@
         </div>
       </div>
       <div class="mimi-actions">
-        <button class="mimi-icon-button" type="button" aria-label="添加联系人">
+        <button class="mimi-icon-button" type="button" aria-label="添加联系人" @click="handleAddContact">
           <svg viewBox="0 0 24 24">
             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
@@ -48,7 +48,7 @@
           <span class="mimi-conversation-name">{{ activeContact.昵称 }}</span>
           <span class="mimi-conversation-meta">{{ activeContact.签名 }}</span>
         </div>
-        <button class="mimi-header-button mimi-header-button--more" type="button" aria-label="更多操作">
+        <button class="mimi-header-button mimi-header-button--more" type="button" aria-label="更多操作" @click="handleMoreOptions">
           <svg viewBox="0 0 24 24" style="shape-rendering: crispEdges;">
             <rect x="6" y="8" width="12" height="2" rx="1" fill="currentColor" />
             <rect x="6" y="11" width="12" height="2" rx="1" fill="currentColor" />
@@ -131,7 +131,7 @@
 
       <!-- Conversation View -->
       <div v-show="currentView === 'conversation'" class="mimi-conversation-view">
-        <div class="mimi-conversation-messages">
+        <div ref="messagesContainer" class="mimi-conversation-messages">
           <div
             v-for="message in conversationMessages"
             :key="message.timestamp"
@@ -227,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue';
 import MomentsPage from './MomentsPage.vue';
 import { resolveAvatar, convertAvatarToThumbnail } from './utils/avatar';
 
@@ -257,6 +257,11 @@ const activeTab = ref<'messages' | 'contacts' | 'moments'>('messages');
 const activeContactName = ref<string>('');
 const messageInput = ref('');
 const userAvatar = ref<string>('');
+const messagesContainer = ref<HTMLElement | null>(null);
+
+// 防抖相关变量
+let scrollTimeout: number | null = null;
+let isScrolling = ref(false);
 
 // 聊天页面状态栏颜色计算
 const chatStatusBarColor = computed(() => {
@@ -420,14 +425,63 @@ function formatMessageTime(timestamp: number): string {
   return `${hours}:${minutes}`;
 }
 
+// 重置滚动位置到顶部
+function resetScrollPosition() {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = 0;
+  }
+}
+
+// 带防抖的滚动到底部功能方法
+function scrollToBottom(immediate = false) {
+  // 清除之前的防抖定时器
+  if (scrollTimeout !== null) {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = null;
+  }
+
+  const doScroll = () => {
+    if (messagesContainer.value && currentView.value === 'conversation') {
+      isScrolling.value = true;
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+
+      // 滚动完成后重置状态
+      setTimeout(() => {
+        isScrolling.value = false;
+      }, 300);
+    }
+  };
+
+  if (immediate) {
+    doScroll();
+  } else {
+    // 使用防抖，避免频繁滚动
+    scrollTimeout = window.setTimeout(() => {
+      doScroll();
+      scrollTimeout = null;
+    }, 150);
+  }
+}
+
 function openConversation(contactName: string) {
   activeContactName.value = contactName;
   currentView.value = 'conversation';
+  // 切换到对话界面后重置滚动位置，然后立即滚动到底部
+  nextTick(() => {
+    resetScrollPosition();
+    scrollToBottom(true);
+  });
 }
 
 function goBack() {
   currentView.value = 'messages';
   activeContactName.value = '';
+  // 清除任何正在进行的滚动操作
+  if (scrollTimeout !== null) {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = null;
+  }
+  isScrolling.value = false;
 }
 
 function goToMoments() {
@@ -446,6 +500,14 @@ function sendMessage() {
   // 这里只是模拟，实际应用中需要发送到服务器
   console.log('发送消息:', messageInput.value);
   messageInput.value = '';
+}
+
+function handleAddContact() {
+  toastr.info('添加联系人功能暂未完成，敬请期待！', '提示');
+}
+
+function handleMoreOptions() {
+  toastr.info('更多操作功能暂未完成，敬请期待！', '提示');
 }
 
 // 处理头像加载错误 - 隐藏图片而不是显示默认头像
@@ -626,15 +688,51 @@ watch(
   { flush: 'post' },
 );
 
+// 监听对话消息变化，自动滚动到底部
+watch(
+  conversationMessages,
+  () => {
+    if (currentView.value === 'conversation' && !isScrolling.value) {
+      scrollToBottom();
+    }
+  },
+  { flush: 'post', deep: true },
+);
+
+// 监听当前联系人变化，当切换联系人时也自动滚动到底部
+watch(
+  activeContactName,
+  (newName, oldName) => {
+    if (newName && oldName !== newName && currentView.value === 'conversation') {
+      // 清除之前的滚动操作
+      if (scrollTimeout !== null) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = null;
+      }
+      // 使用 nextTick 确保DOM更新后再滚动
+      nextTick(() => {
+        resetScrollPosition();
+        scrollToBottom(true);
+      });
+    }
+  },
+  { flush: 'post' },
+);
+
 onMounted(() => {
   // 初始化
   try {
     // 启动酒馆数据监听器
     const cleanup = setupTavernDataListener();
 
-    // 组件卸载时清理监听器
+    // 组件卸载时清理监听器和定时器
     onUnmounted(() => {
       cleanup?.();
+      // 清理防抖定时器
+      if (scrollTimeout !== null) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = null;
+      }
     });
 
     // 立即尝试获取用户头像，避免出现头像覆盖问题

@@ -13,7 +13,7 @@
       </button>
       <span class="mimi-moments-title">动态</span>
       <div class="mimi-actions">
-        <button class="mimi-icon-button" type="button" aria-label="发布动态">
+        <button class="mimi-icon-button" type="button" aria-label="发布动态" @click="handlePublishMoment">
           <svg viewBox="0 0 24 24">
             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
@@ -30,7 +30,7 @@
               <span class="mimi-moment-name">{{ moment.name }}</span>
             </div>
           </div>
-          <button class="mimi-moment-more" type="button" aria-label="更多">
+          <button class="mimi-moment-more" type="button" aria-label="更多" @click="handleMomentMore">
             <svg viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -50,7 +50,13 @@
           </li>
         </ul>
         <div class="mimi-moment-reply">
-          <input class="mimi-moment-reply-input" type="text" placeholder="说点什么吧" />
+          <input
+            class="mimi-moment-reply-input"
+            type="text"
+            placeholder="说点什么吧"
+            @keypress.enter="handleReplySubmit"
+            v-model="replyInputs[moment.id]"
+          />
         </div>
       </article>
 
@@ -68,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 // 定义发射事件和props
 const emit = defineEmits<{
@@ -78,6 +84,9 @@ const emit = defineEmits<{
 const props = defineProps<{
   momentsData?: any[];
 }>();
+
+// 回复输入框的状态
+const replyInputs = ref<Record<string, string>>({});
 
 interface MomentComment {
   id: string;
@@ -108,6 +117,18 @@ const moments = computed<MomentItem[]>(() => {
 
 function goBack() {
   emit('goBack');
+}
+
+function handlePublishMoment() {
+  toastr.info('发布动态功能暂未完成，敬请期待！', '提示');
+}
+
+function handleMomentMore() {
+  toastr.info('动态更多操作功能暂未完成，敬请期待！', '提示');
+}
+
+function handleReplySubmit() {
+  toastr.info('评论功能暂未完成，敬请期待！', '提示');
 }
 </script>
 
