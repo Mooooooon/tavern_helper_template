@@ -1,10 +1,10 @@
 <template>
   <div class="mimi-chat-app">
     <!-- Chat Header -->
-    <header v-if="currentView !== 'conversation' && currentView !== 'moments'" class="mimi-chat-header" :style="chatStatusBarStyle" @click="handleChatHeaderClick">
+    <header v-show="currentView !== 'conversation' && currentView !== 'moments'" class="mimi-chat-header" :style="chatStatusBarStyle" @click="handleChatHeaderClick">
       <div class="mimi-profile">
         <div class="mimi-avatar">
-          <img :src="userAvatar || 'https://pub-a36fa2b8a8044f89a3426fa759085b6c.r2.dev/%E7%AB%8B%E7%BB%98_%E7%94%98%E9%9B%A8.png'" alt="Avatar">
+          <img :src="userAvatar || ''" alt="Avatar" @error="handleAvatarError">
         </div>
         <div class="mimi-profile-info">
           <span class="mimi-profile-name">我的账号</span>
@@ -29,7 +29,7 @@
     </header>
 
     <!-- Conversation Header -->
-    <header v-if="currentView === 'conversation'" class="mimi-chat-header mimi-chat-header--conversation" :style="conversationHeaderStyle">
+    <header v-show="currentView === 'conversation'" class="mimi-chat-header mimi-chat-header--conversation" :style="conversationHeaderStyle">
       <div class="mimi-conversation-header">
         <button class="mimi-header-button mimi-header-button--back" type="button" aria-label="返回聊天列表" @click="goBack">
           <svg viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
     <!-- Chat Content -->
     <main class="mimi-chat-content" :class="{ 'mimi-chat-content--conversation': currentView === 'conversation' }">
       <!-- Messages List View -->
-      <div v-if="currentView === 'messages'" v-show="activeTab === 'messages'" class="mimi-messages-page">
+      <div v-show="currentView === 'messages' && activeTab === 'messages'" class="mimi-messages-page">
         <div v-if="filteredMessages.length" class="mimi-message-list">
           <button
             v-for="message in filteredMessages"
@@ -90,7 +90,7 @@
       </div>
 
       <!-- Contacts List View -->
-      <div v-if="currentView === 'messages'" v-show="activeTab === 'contacts'" class="mimi-contacts-page">
+      <div v-show="currentView === 'messages' && activeTab === 'contacts'" class="mimi-contacts-page">
         <div v-if="hasContacts" class="mimi-contacts-list">
           <div
             v-for="section in contactSections"
@@ -127,7 +127,7 @@
       </div>
 
       <!-- Conversation View -->
-      <div v-if="currentView === 'conversation'" class="mimi-conversation-view">
+      <div v-show="currentView === 'conversation'" class="mimi-conversation-view">
         <div class="mimi-conversation-messages">
           <div
             v-for="message in conversationMessages"
@@ -176,7 +176,7 @@
     </main>
 
     <!-- Chat Footer -->
-    <footer v-if="currentView === 'messages' || currentView === 'contacts'" class="mimi-chat-footer" :style="chatStatusBarStyle">
+    <footer v-show="currentView === 'messages' || currentView === 'contacts'" class="mimi-chat-footer" :style="chatStatusBarStyle">
       <nav>
         <button
           class="mimi-nav-item"
@@ -458,6 +458,7 @@ function goToHome() {
 
 function goToMoments() {
   currentView.value = 'moments';
+  loadTavernData();
 }
 
 function goBackFromMoments() {
@@ -473,17 +474,18 @@ function sendMessage() {
   messageInput.value = '';
 }
 
+// 处理头像加载错误 - 隐藏图片而不是显示默认头像
+function handleAvatarError(event: Event) {
+  const img = event.target as HTMLImageElement;
+  img.style.display = 'none';
+}
+
 // 从外部数据源加载联系人数据
 function loadContactsData(contactsDataParam: Record<string, any>) {
-  console.log('[ChatPage] 加载联系人数据，数量:', Object.keys(contactsDataParam).length);
-
-  // 转换联系人数据格式
   const formattedContacts: Record<string, ContactData> = {};
 
   for (const [contactName, contactInfo] of Object.entries(contactsDataParam)) {
-    if (!contactInfo || typeof contactInfo !== 'object') {
-      continue;
-    }
+    if (!contactInfo || typeof contactInfo !== 'object') continue;
 
     const info = contactInfo as any;
 
@@ -505,43 +507,28 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
     };
   }
 
-  // 更新内部联系人数据
   contactsData.value = formattedContacts;
-  console.log('[ChatPage] 联系人数据加载完成，共处理', Object.keys(formattedContacts).length, '个联系人');
 }
 
-// 获取动态数据（优化性能）
+// 获取动态数据
 const momentsData = computed(() => {
   const contacts = contactsData.value;
-  const contactsCount = Object.keys(contacts).length;
-  if (contactsCount === 0) return [];
+  if (Object.keys(contacts).length === 0) return [];
 
   const moments: any[] = [];
   const now = Date.now();
 
-  // 避免在循环中重复调用formatMomentTimestamp
-  const cache = new Map<string, string>();
-
   for (const [contactName, contact] of Object.entries(contacts)) {
-    const moments = contact.空间动态;
-    if (!moments || !Array.isArray(moments)) continue;
+    const contactMoments = contact.空间动态;
+    if (!Array.isArray(contactMoments)) continue;
 
-    for (let i = 0; i < moments.length; i++) {
-      const moment = moments[i];
+    for (let i = 0; i < contactMoments.length; i++) {
+      const moment = contactMoments[i];
       if (!moment || !moment.时间 || !moment.内容) continue;
 
-      // 缓存时间戳计算结果
-      const timeKey = moment.时间.toString();
-      let timestamp = cache.get(timeKey);
-      if (!timestamp) {
-        timestamp = formatMomentTimestamp(moment.时间, now);
-        cache.set(timeKey, timestamp);
-      }
-
-      // 优化评论处理
       const comments: any[] = [];
       const commentList = moment.评论列表;
-      if (commentList && Array.isArray(commentList)) {
+      if (Array.isArray(commentList)) {
         for (let j = 0; j < commentList.length; j++) {
           const comment = commentList[j];
           if (!comment || !comment.发言内容) continue;
@@ -558,7 +545,7 @@ const momentsData = computed(() => {
         contactName,
         name: contact.昵称 || contactName,
         content: moment.内容,
-        timestamp,
+        timestamp: formatMomentTimestamp(moment.时间, now),
         timeValue: moment.时间,
         comments,
         avatar: contact.头像
@@ -651,9 +638,7 @@ const loadTavernData = async () => {
       return;
     }
 
-    // 加载联系人数据
     loadContactsData(phoneData.联系人);
-
   } catch (error) {
     console.warn('[ChatPage] 加载酒馆数据时出错:', error);
   }
@@ -680,8 +665,8 @@ onMounted(() => {
       cleanup?.();
     });
 
-    // 延迟获取用户头像，避免影响初始渲染性能
-    setTimeout(async () => {
+    // 立即尝试获取用户头像，避免出现头像覆盖问题
+    const loadUserAvatar = async () => {
       if (typeof triggerSlash !== 'function') return;
 
       try {
@@ -709,7 +694,10 @@ onMounted(() => {
       } catch (error) {
         console.warn('[ChatPage] 获取用户头像失败:', error);
       }
-    }, 1000); // 延迟1秒获取头像
+    };
+
+    // 立即执行头像获取
+    loadUserAvatar();
   } catch (error) {
     console.warn('[ChatPage] 初始化时出错:', error);
   }

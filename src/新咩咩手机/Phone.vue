@@ -30,7 +30,7 @@
 
           <div class="mimi-phone-screen">
             <!-- Home Page -->
-            <div v-if="currentView === 'home'" class="mimi-home-page">
+            <div v-show="currentView === 'home'" class="mimi-home-page">
               <header class="mimi-home-header">
                 <div class="mimi-home-clock">{{ currentTimeText }}</div>
                 <div class="mimi-home-date">{{ currentDateText }}</div>
@@ -96,7 +96,7 @@
 
             <!-- Chat Page -->
             <ChatPage
-              v-else-if="currentView === 'chat'"
+              v-show="currentView === 'chat'"
               ref="chatPageRef"
               @go-home="goHome"
             />
@@ -204,22 +204,28 @@ defineExpose({
   visible
 });
 
+let cleanup: (() => void) | null = null;
+let systemTimer: number | null = null;
+
 onMounted(() => {
   // 启动时间监听器
-  const cleanup = setupTimeListener();
+  cleanup = setupTimeListener();
 
   // 系统时间定时器 - 只有在没有加载外部数据时才使用系统时间
-  const timer = setInterval(() => {
+  systemTimer = setInterval(() => {
     if (!hasLoadedTavernData.value) {
       currentTime.value = Date.now();
     }
   }, 1000);
+});
 
-  // 清理函数
-  return () => {
-    cleanup?.();
-    clearInterval(timer);
-  };
+onUnmounted(() => {
+  // 在组件卸载时清理所有资源
+  cleanup?.();
+  if (systemTimer) {
+    clearInterval(systemTimer);
+    systemTimer = null;
+  }
 });
 
 const currentTimeText = computed(() => {
@@ -303,9 +309,17 @@ const setupTimeListener = () => {
   // 初始化时立即加载一次时间
   loadTimeFromTavern();
 
+  let mvuListenerRemover: (() => void) | null = null;
+
   // 监听MVU变量变化事件
   if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
     eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
+    // 尝试获取事件移除函数（如果 MVU 提供的话）
+    if (typeof eventOff === 'function') {
+      mvuListenerRemover = () => {
+        eventOff(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
+      };
+    }
   }
 
   // 设置定时检查作为备选方案（降低频率）
@@ -316,7 +330,11 @@ const setupTimeListener = () => {
   }, 30000);
 
   // 清理函数
-  return () => clearInterval(checkInterval);
+  return () => {
+    clearInterval(checkInterval);
+    // 清理 MVU 事件监听器
+    mvuListenerRemover?.();
+  };
 };
 
 // 从酒馆变量加载时间

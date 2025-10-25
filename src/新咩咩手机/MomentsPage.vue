@@ -122,9 +122,7 @@ const momentsHeaderStyle = computed(() => ({
 
 
 const moments = computed<MomentItem[]>(() => {
-  return (props.momentsData && Array.isArray(props.momentsData))
-    ? props.momentsData
-    : [];
+  return (props.momentsData && Array.isArray(props.momentsData)) ? props.momentsData : [];
 });
 
 function goBack() {

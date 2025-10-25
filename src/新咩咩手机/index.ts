@@ -4,22 +4,27 @@ import Phone from './Phone.vue';
 export function teleport_style() {
   deteleport_style();
 
-  const styles = $(`head > style`, document);
-  const targetJQuery = window.parent.$;
+  // 使用原生DOM方法避免jQuery clone()导致的unload事件警告
+  const styleContainer = document.createElement('div');
+  styleContainer.setAttribute('script_id', getScriptId());
 
-  const styleContainer = targetJQuery(`<div>`)
-    .attr('script_id', getScriptId());
-
-  styles.each((index, style) => {
-    const clonedStyle = targetJQuery(style).clone();
-    styleContainer.append(clonedStyle);
+  // 复制所有样式标签
+  const styles = document.querySelectorAll('head > style');
+  styles.forEach(style => {
+    const clonedStyle = style.cloneNode(true);
+    styleContainer.appendChild(clonedStyle);
   });
 
-  styleContainer.appendTo(window.parent.document.head);
+  // 将容器添加到父页面head
+  window.parent.document.head.appendChild(styleContainer);
 }
 
 export function deteleport_style() {
-  window.parent.$(`head > div[script_id="${getScriptId()}"]`).remove();
+  // 使用原生DOM方法保持一致性
+  const styleContainer = window.parent.document.querySelector(`head > div[script_id="${getScriptId()}"]`);
+  if (styleContainer) {
+    styleContainer.remove();
+  }
 }
 
 $(() => {
