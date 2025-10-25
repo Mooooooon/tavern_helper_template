@@ -184,6 +184,8 @@ onMounted(() => {
 
 const showPhone = async () => {
   visible.value = true;
+  // 显示时刷新数据
+  refreshChatData();
   await nextTick();
 };
 
@@ -191,35 +193,36 @@ const hidePhone = async () => {
   visible.value = false;
 };
 
+// 刷新聊天数据的方法
+function refreshChatData() {
+  if (chatPageRef.value) {
+    chatPageRef.value.refreshData();
+  }
+}
+
 // 暴露方法给父组件使用
 defineExpose({
   showPhone,
   hidePhone,
   visible,
+  refreshData: refreshChatData, // 提供刷新数据的方法
 });
 
 let cleanup: (() => void) | null = null;
-let systemTimer: number | null = null;
 
 onMounted(() => {
   // 启动时间监听器
   cleanup = setupTimeListener();
 
-  // 系统时间定时器 - 只有在没有加载外部数据时才使用系统时间
-  systemTimer = setInterval(() => {
-    if (!hasLoadedTavernData.value) {
-      currentTime.value = Date.now();
-    }
-  }, 1000);
+  // 初始化时间，如果没有酒馆数据则使用系统时间
+  if (!hasLoadedTavernData.value) {
+    currentTime.value = Date.now();
+  }
 });
 
 onUnmounted(() => {
   // 在组件卸载时清理所有资源
   cleanup?.();
-  if (systemTimer) {
-    clearInterval(systemTimer);
-    systemTimer = null;
-  }
 });
 
 const currentTimeText = computed(() => {
@@ -316,43 +319,37 @@ function handleMusicClick() {
 
 // 监听酒馆变量变化并更新时间
 const setupTimeListener = () => {
-  // 初始化时立即加载一次时间
   loadTimeFromTavern();
 
-  let mvuListenerRemover: (() => void) | null = null;
+  if (typeof eventOn === 'function') {
+    // MVU事件监听
+    if (typeof Mvu !== 'undefined') {
+      eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
 
-  // 监听MVU变量变化事件
-  if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
-    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
-    // 尝试获取事件移除函数（如果 MVU 提供的话）
-    if (typeof eventRemoveListener === 'function') {
-      mvuListenerRemover = () => {
-        eventRemoveListener(Mvu.events.VARIABLE_UPDATE_ENDED, loadTimeFromTavern);
-      };
+      // 监听消息楼层变量变化 - 这会影响时间
+      if (Mvu.events.MESSAGE_VARIABLE_CHANGED) {
+        eventOn(Mvu.events.MESSAGE_VARIABLE_CHANGED, loadTimeFromTavern);
+      }
     }
+
+    // 酒馆事件监听
+    eventOn(tavern_events.GENERATION_ENDED, () => {
+      console.log('[Phone] 消息生成完成，检查时间更新');
+      setTimeout(loadTimeFromTavern, 100);
+    });
+
+    eventOn(tavern_events.CHAT_CHANGED, () => {
+      console.log('[Phone] 聊天切换，检查时间更新');
+      loadTimeFromTavern();
+    });
   }
 
-  // 设置定时检查作为备选方案（降低频率）
-  const checkInterval = setInterval(() => {
-    if (!hasLoadedTavernData.value) {
-      loadTimeFromTavern();
-    }
-  }, 30000);
-
-  // 清理函数
-  return () => {
-    clearInterval(checkInterval);
-    // 清理 MVU 事件监听器
-    mvuListenerRemover?.();
-  };
+  return () => {};
 };
 
 // 从酒馆变量加载时间
 const loadTimeFromTavern = async () => {
-  if (hasLoadedTavernData.value) return;
-
   try {
-    // 等待MVU初始化
     if (typeof waitGlobalInitialized === 'function') {
       await waitGlobalInitialized('Mvu');
     }
@@ -362,15 +359,20 @@ const loadTimeFromTavern = async () => {
     const mvuData = Mvu.getMvuData({ type: 'chat' });
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
-    if (phoneData && typeof phoneData === 'object' && phoneData.当前时间) {
-      // 将格式化的时间字符串转换为时间戳
-      const formattedTime = phoneData.当前时间;
-      const timestamp = new Date(formattedTime).getTime();
-      currentTime.value = isNaN(timestamp) ? Date.now() : timestamp;
-      hasLoadedTavernData.value = true;
+    if (phoneData?.当前时间) {
+      const timestamp = new Date(phoneData.当前时间).getTime();
+      const newTime = isNaN(timestamp) ? Date.now() : timestamp;
+
+      if (Math.abs(currentTime.value - newTime) > 1000) {
+        currentTime.value = newTime;
+        hasLoadedTavernData.value = true;
+      }
+    } else if (!hasLoadedTavernData.value) {
+      currentTime.value = Date.now();
     }
   } catch (error) {
-    console.warn('[Phone] 加载时间时出错:', error);
+    console.warn('[Phone] 加载时间出错:', error);
+    currentTime.value = Date.now();
   }
 };
 </script>

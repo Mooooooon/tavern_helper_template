@@ -630,29 +630,14 @@ function formatMomentTimestamp(timestamp: number, nowMs: number): string {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeText}`;
 }
 
-// 公开方法
-defineExpose({
-  loadContactsData,
-});
-
-// 数据监听和加载
-const setupTavernDataListener = () => {
-  // 初始化时立即加载一次数据
-  loadTavernData();
-
-  // 监听MVU变量变化事件
-  if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
-    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTavernData);
-  }
-
-  // 设置定时检查作为备选方案（降低频率）
-  const checkInterval = setInterval(loadTavernData, 30000); // 30秒而不是5秒
-
-  // 清理函数
-  return () => clearInterval(checkInterval);
-};
+// 简单的防抖变量
+let isLoadingData = false;
 
 const loadTavernData = async () => {
+  if (isLoadingData) return; // 防止重复加载
+
+  isLoadingData = true;
+
   try {
     // 等待MVU初始化
     if (typeof waitGlobalInitialized === 'function') {
@@ -664,15 +649,70 @@ const loadTavernData = async () => {
     const mvuData = Mvu.getMvuData({ type: 'chat' });
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
 
-    if (!phoneData || typeof phoneData !== 'object' || !phoneData.联系人) {
-      return;
+    if (phoneData?.联系人) {
+      loadContactsData(phoneData.联系人);
     }
-
-    loadContactsData(phoneData.联系人);
   } catch (error) {
     console.warn('[ChatPage] 加载酒馆数据时出错:', error);
+  } finally {
+    isLoadingData = false;
   }
 };
+
+// 数据监听和加载
+const setupTavernDataListener = () => {
+  // 初始化时立即加载一次数据
+  loadTavernData();
+
+  // 监听MVU变量变化事件 - 关键！
+  if (typeof eventOn === 'function' && typeof Mvu !== 'undefined') {
+    eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, loadTavernData);
+
+    // 监听消息楼层变量变化 - 这是最重要的！
+    if (Mvu.events.MESSAGE_VARIABLE_CHANGED) {
+      eventOn(Mvu.events.MESSAGE_VARIABLE_CHANGED, () => {
+        console.log('[ChatPage] 消息楼层变量变化，强制刷新');
+        setTimeout(loadTavernData, 100);
+      });
+    }
+  }
+
+  // 监听酒馆消息事件 - 添加必要的延迟
+  if (typeof eventOn === 'function') {
+    eventOn(tavern_events.MESSAGE_UPDATED, () => {
+      console.log('[ChatPage] 消息更新');
+      setTimeout(loadTavernData, 200);
+    });
+
+    eventOn(tavern_events.GENERATION_ENDED, () => {
+      console.log('[ChatPage] 消息生成完成');
+      setTimeout(loadTavernData, 300); // 延迟确保变量已更新
+    });
+
+    eventOn(tavern_events.CHAT_CHANGED, () => {
+      console.log('[ChatPage] 聊天切换');
+      loadTavernData(); // 聊天切换立即执行
+    });
+
+    eventOn(tavern_events.MESSAGE_DELETED, () => {
+      console.log('[ChatPage] 消息删除');
+      setTimeout(loadTavernData, 200);
+    });
+
+    eventOn(tavern_events.MESSAGE_SENT, () => {
+      console.log('[ChatPage] 消息发送');
+      setTimeout(loadTavernData, 500); // 发送后延迟更长时间
+    });
+  }
+
+  return () => {}; // 清理函数
+};
+
+// 公开方法
+defineExpose({
+  loadContactsData,
+  refreshData: loadTavernData,
+});
 
 // 监听联系人数据变化（性能优化：浅层监听 + 手动检查）
 watch(
@@ -728,7 +768,6 @@ onMounted(() => {
     // 组件卸载时清理监听器和定时器
     onUnmounted(() => {
       cleanup?.();
-      // 清理防抖定时器
       if (scrollTimeout !== null) {
         clearTimeout(scrollTimeout);
         scrollTimeout = null;

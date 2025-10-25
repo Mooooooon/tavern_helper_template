@@ -30,18 +30,17 @@ $(() => {
     const phoneApp = createApp(Phone);
     const phoneInstance = phoneApp.mount($appContainer[0]) as any;
 
+    (window as any).mimiPhoneInstance = phoneInstance;
+
     eventOn(getButtonEvent('召唤手机'), () => {
-      if (phoneInstance.visible) {
-        phoneInstance.hidePhone();
-      } else {
-        phoneInstance.showPhone();
-      }
+      phoneInstance.visible ? phoneInstance.hidePhone() : phoneInstance.showPhone();
     });
 
     $(window).on('pagehide', () => {
       phoneApp.unmount();
       (window.parent as any).$($appContainer).remove();
       deteleport_style();
+      delete (window as any).mimiPhoneInstance;
     });
   }, 500);
 });
