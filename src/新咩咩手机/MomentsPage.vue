@@ -339,10 +339,9 @@ function goBack() {
   height: 0;
 }
 
-/* 隔离手机应用的输入框样式，覆盖酒馆主题 */
+/* 手机应用输入框样式隔离 */
 .mimi-moments-page input[type='text'],
 .mimi-moments-page input[type='number'],
-.mimi-moments-page input[type='switch'],
 .mimi-moments-page input:not([type]),
 .mimi-moments-page textarea:not([type='search']) {
   background-color: #f3f4f6 !important;

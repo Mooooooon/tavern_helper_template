@@ -65,22 +65,22 @@
         <div v-if="filteredMessages.length" class="mimi-message-list">
           <button
             v-for="message in filteredMessages"
-            :key="message.contactName"
+            :key="message?.contactName || ''"
             class="mimi-message-item"
-            :class="{ pinned: message.pinned }"
+            :class="{ pinned: message?.pinned }"
             type="button"
-            @click="openConversation(message.contactName)"
+            @click="openConversation(message?.contactName || '')"
           >
             <div class="mimi-avatar-wrapper">
-              <img :src="message.avatar || ''" alt="avatar" />
+              <img :src="message?.avatar || ''" alt="avatar" />
             </div>
             <div class="mimi-message-details">
               <div class="mimi-message-top">
-                <span class="mimi-name">{{ message.name }}</span>
-                <span class="mimi-timestamp">{{ message.time }}</span>
+                <span class="mimi-name">{{ message?.name }}</span>
+                <span class="mimi-timestamp">{{ message?.time }}</span>
               </div>
-              <div class="mimi-message-bottom" :class="{ pinned: message.pinned }">
-                <span class="mimi-last-message">{{ message.lastMessage }}</span>
+              <div class="mimi-message-bottom" :class="{ pinned: message?.pinned }">
+                <span class="mimi-last-message">{{ message?.lastMessage }}</span>
               </div>
             </div>
           </button>
@@ -250,15 +250,6 @@ interface ContactData {
   空间动态: any[];
 }
 
-interface MessageData {
-  contactName: string;
-  name: string;
-  lastMessage: string;
-  timestamp: number;
-  avatar?: string;
-  time: string;
-  pinned?: boolean;
-}
 
 // 组件状态
 const currentView = ref<'messages' | 'conversation' | 'moments' | 'contacts'>('messages');
@@ -344,16 +335,12 @@ const contactSections = computed(() => {
   const contactsEntries = Object.entries(contacts);
   if (contactsEntries.length === 0) return [];
 
-  const items: any[] = [];
-  for (let i = 0; i < contactsEntries.length; i++) {
-    const [key, contact] = contactsEntries[i];
-    items.push({
-      contactName: key,
-      displayName: contact.昵称,
-      signature: contact.签名,
-      avatar: contact.头像,
-    });
-  }
+  const items = contactsEntries.map(([key, contact]) => ({
+    contactName: key,
+    displayName: contact.昵称,
+    signature: contact.签名,
+    avatar: contact.头像,
+  }));
 
   return [
     {
@@ -364,38 +351,33 @@ const contactSections = computed(() => {
   ];
 });
 
-const filteredMessages = computed<MessageData[]>(() => {
+const filteredMessages = computed(() => {
   const contacts = contactsData.value;
   const contactsEntries = Object.entries(contacts);
   if (contactsEntries.length === 0) return [];
 
   const now = Date.now();
-  const messages: MessageData[] = [];
+  return contactsEntries
+    .map(([key, contact]) => {
+      const chatRecords = Object.entries(contact.聊天记录);
+      if (chatRecords.length === 0) return null;
 
-  for (let i = 0; i < contactsEntries.length; i++) {
-    const [key, contact] = contactsEntries[i];
-    const chatRecords = Object.entries(contact.聊天记录);
-    if (chatRecords.length === 0) continue;
+      const [lastTimeStr, lastMessage] = chatRecords[chatRecords.length - 1];
+      const timestamp = new Date(lastTimeStr).getTime();
+      const validTimestamp = isNaN(timestamp) ? 0 : timestamp;
 
-    const lastEntry = chatRecords[chatRecords.length - 1];
-    const lastMessage = lastEntry[1];
-    // 将格式化的时间字符串转换为时间戳
-    const lastTimestamp = new Date(lastEntry[0]).getTime();
-
-    // 确保时间戳有效
-    const validTimestamp = isNaN(lastTimestamp) ? 0 : lastTimestamp;
-
-    messages.push({
-      contactName: key,
-      name: contact.昵称,
-      lastMessage: lastMessage.message,
-      timestamp: validTimestamp,
-      avatar: contact.头像,
-      time: formatTimestamp(validTimestamp, now),
-    });
-  }
-
-  return messages.sort((a, b) => b.timestamp - a.timestamp) as MessageData[];
+      return {
+        contactName: key,
+        name: contact.昵称,
+        lastMessage: lastMessage.message,
+        timestamp: validTimestamp,
+        avatar: contact.头像,
+        time: formatTimestamp(validTimestamp, now),
+        pinned: false, // Add pinned property with default value
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => b.timestamp - a.timestamp);
 });
 
 // 方法
@@ -472,22 +454,21 @@ function handleAvatarError(event: Event) {
   img.style.display = 'none';
 }
 
-// 从外部数据源加载联系人数据
 function loadContactsData(contactsDataParam: Record<string, any>) {
   const formattedContacts: Record<string, ContactData> = {};
 
-  for (const [contactName, contactInfo] of Object.entries(contactsDataParam)) {
-    if (!contactInfo || typeof contactInfo !== 'object') continue;
+  Object.entries(contactsDataParam).forEach(([contactName, contactInfo]) => {
+    if (!contactInfo || typeof contactInfo !== 'object') return;
 
     const info = contactInfo as any;
+    const rawAvatar = info.头像 || '';
 
-    // 处理头像
-    let processedAvatar = info.头像 || '';
-    if (processedAvatar && (processedAvatar === 'char' || processedAvatar.startsWith('char:'))) {
-      const resolvedAvatar = resolveAvatar(processedAvatar);
-      processedAvatar = resolvedAvatar ? convertAvatarToThumbnail(resolvedAvatar) : processedAvatar;
-    } else if (processedAvatar) {
-      processedAvatar = convertAvatarToThumbnail(processedAvatar);
+    let processedAvatar = rawAvatar;
+    if (rawAvatar && (rawAvatar === 'char' || rawAvatar.startsWith('char:'))) {
+      const resolvedAvatar = resolveAvatar(rawAvatar);
+      processedAvatar = resolvedAvatar ? convertAvatarToThumbnail(resolvedAvatar) : rawAvatar;
+    } else if (rawAvatar) {
+      processedAvatar = convertAvatarToThumbnail(rawAvatar);
     }
 
     formattedContacts[contactName] = {
@@ -497,44 +478,35 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
       聊天记录: info.聊天记录 || {},
       空间动态: info.空间动态 || [],
     };
-  }
+  });
 
   contactsData.value = formattedContacts;
 }
 
-// 获取动态数据
 const momentsData = computed(() => {
   const contacts = contactsData.value;
   if (Object.keys(contacts).length === 0) return [];
 
-  const moments: any[] = [];
   const now = Date.now();
+  const moments: any[] = [];
 
-  for (const [contactName, contact] of Object.entries(contacts)) {
+  Object.entries(contacts).forEach(([contactName, contact]) => {
     const contactMoments = contact.空间动态;
-    if (!Array.isArray(contactMoments)) continue;
+    if (!Array.isArray(contactMoments)) return;
 
-    for (let i = 0; i < contactMoments.length; i++) {
-      const moment = contactMoments[i];
-      if (!moment || !moment.时间 || !moment.内容) continue;
+    contactMoments.forEach((moment, i) => {
+      if (!moment?.时间 || !moment.内容) return;
 
-      const comments: any[] = [];
-      const commentList = moment.评论列表;
-      if (Array.isArray(commentList)) {
-        for (let j = 0; j < commentList.length; j++) {
-          const comment = commentList[j];
-          if (!comment || !comment.发言内容) continue;
-          comments.push({
-            id: `${contactName}-${moment.时间}-${j}`,
-            author: comment.ID || `访客${j + 1}`,
-            content: comment.发言内容,
-          });
-        }
-      }
+      const comments = (moment.评论列表 || [])
+        .filter((comment: any) => comment?.发言内容)
+        .map((comment: any, j: number) => ({
+          id: `${contactName}-${moment.时间}-${j}`,
+          author: comment.ID || `访客${j + 1}`,
+          content: comment.发言内容,
+        }));
 
-      // 将格式化的时间字符串转换为时间戳
-      const momentTimestamp = new Date(moment.时间).getTime();
-      const validTimestamp = isNaN(momentTimestamp) ? 0 : momentTimestamp;
+      const timestamp = new Date(moment.时间).getTime();
+      const validTimestamp = isNaN(timestamp) ? 0 : timestamp;
 
       moments.push({
         id: `${contactName}-${moment.时间}-${i}`,
@@ -546,8 +518,8 @@ const momentsData = computed(() => {
         comments,
         avatar: contact.头像,
       });
-    }
-  }
+    });
+  });
 
   return moments.sort((a, b) => b.timeValue - a.timeValue);
 });
@@ -899,23 +871,23 @@ onMounted(() => {
 }
 
 .mimi-message-item {
-  display: flex !important;
-  gap: 12px !important;
-  padding: 12px 12px !important;
-  border: none !important;
-  background: transparent !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  text-align: left !important;
-  cursor: pointer !important;
-  align-items: center !important;
-  min-height: 72px !important;
-  max-height: 72px !important;
-  height: 72px !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  max-width: 100%;
+  text-align: left;
+  cursor: pointer;
+  align-items: center;
+  min-height: 72px;
+  max-height: 72px;
+  height: 72px;
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  position: relative;
 }
 
 .mimi-message-item:focus-visible {
@@ -942,14 +914,14 @@ onMounted(() => {
 }
 
 .mimi-message-details {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 6px !important;
-  min-width: 0 !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  justify-content: space-between !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  justify-content: space-between;
 }
 
 .mimi-message-top {
@@ -990,15 +962,15 @@ onMounted(() => {
 }
 
 .mimi-last-message {
-  flex: 1 !important;
-  font-size: 13px !important;
-  color: #5a5a5f !important;
-  min-width: 0 !important;
-  width: 0 !important; /* 强制flex子元素遵守省略号 */
-  display: block !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
+  flex: 1;
+  font-size: 13px;
+  color: #5a5a5f;
+  min-width: 0;
+  width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   line-height: 1.3;
 }
 
@@ -1227,22 +1199,22 @@ nav {
   gap: 2px;
   position: relative;
   transition: color 0.2s ease;
-  border: none !important;
-  background: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  outline: none !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  box-shadow: none;
+  text-shadow: none;
   cursor: pointer;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .mimi-nav-item:focus {
-  outline: none !important;
-  box-shadow: none !important;
+  outline: none;
+  box-shadow: none;
 }
 
 .mimi-nav-icon {
@@ -1265,10 +1237,9 @@ nav {
   background: #1f1f1f;
 }
 
-/* 隔离手机应用的输入框样式，覆盖酒馆主题 */
+/* 手机应用输入框样式隔离 */
 .mimi-chat-app input[type='text'],
 .mimi-chat-app input[type='number'],
-.mimi-chat-app input[type='switch'],
 .mimi-chat-app input:not([type]),
 .mimi-chat-app textarea:not([type='search']) {
   background-color: #f6f6f7 !important;

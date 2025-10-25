@@ -185,15 +185,10 @@ onMounted(() => {
 const showPhone = async () => {
   visible.value = true;
   await nextTick();
-
-  // 等待ChatPage组件完全渲染
-  await nextTick();
-  await nextTick();
 };
 
 const hidePhone = async () => {
   visible.value = false;
-  await nextTick();
 };
 
 // 暴露方法给父组件使用
@@ -300,7 +295,7 @@ function handleStatusBarClick(event: MouseEvent) {
 }
 
 function goSettings() {
-  // TODO: 实现导航到设置页面
+  // TODO: 实现设置页面
 }
 
 // 监听酒馆变量变化并更新时间
@@ -470,15 +465,11 @@ const loadTimeFromTavern = async () => {
   cursor: move;
   user-select: none;
   pointer-events: auto;
-  opacity: 1 !important;
-  filter: none !important;
+  transition: none;
 }
 
-.mimi-phone-drag-handle,
 .mimi-phone-drag-handle * {
-  transition: none !important;
-  opacity: 1 !important;
-  filter: none !important;
+  transition: none;
 }
 
 .mimi-phone-status-bar {
