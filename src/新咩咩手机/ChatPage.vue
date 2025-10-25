@@ -49,10 +49,10 @@
           <span class="mimi-conversation-meta">{{ activeContact.签名 }}</span>
         </div>
         <button class="mimi-header-button mimi-header-button--more" type="button" aria-label="更多操作">
-          <svg viewBox="0 0 24 24">
-            <rect x="6" y="8" width="12" height="1.8" rx="0.9" fill="currentColor" />
-            <rect x="6" y="12" width="12" height="1.8" rx="0.9" fill="currentColor" />
-            <rect x="6" y="16" width="12" height="1.8" rx="0.9" fill="currentColor" />
+          <svg viewBox="0 0 24 24" style="shape-rendering: crispEdges;">
+            <rect x="6" y="8" width="12" height="2" rx="1" fill="currentColor" />
+            <rect x="6" y="11" width="12" height="2" rx="1" fill="currentColor" />
+            <rect x="6" y="14" width="12" height="2" rx="1" fill="currentColor" />
           </svg>
         </button>
       </div>
