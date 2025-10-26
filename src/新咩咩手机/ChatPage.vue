@@ -497,9 +497,60 @@ function goBackFromMoments() {
 function sendMessage() {
   if (!messageInput.value.trim() || !activeContactName.value) return;
 
-  // 这里只是模拟，实际应用中需要发送到服务器
-  console.log('发送消息:', messageInput.value);
+  // 加工消息格式，添加角色名前缀
+  const processedMessage = `[手机系统：对${activeContact.value?.昵称 || activeContactName.value}发送消息-"${messageInput.value}"]`;
+
+  // 将消息填入酒馆输入框
+  fillMessageToTavernInput(processedMessage);
+
+  console.log('发送消息:', processedMessage);
   messageInput.value = '';
+}
+
+// 将消息填入酒馆输入框的函数
+function fillMessageToTavernInput(message: string) {
+  try {
+    // 使用jQuery来操作酒馆的输入框
+    const $tavernTextarea = $('#send_textarea');
+
+    if ($tavernTextarea.length === 0) {
+      console.warn('[ChatPage] 未找到酒馆输入框 #send_textarea');
+      toastr.warning('未找到酒馆输入框', '提示');
+      return;
+    }
+
+    // 获取当前输入框的内容
+    const currentContent = $tavernTextarea.val()?.toString().trim() || '';
+
+    // 如果输入框已有内容，需要在前面添加换行
+    let newContent: string;
+    if (currentContent) {
+      newContent = currentContent + '\n' + message;
+    } else {
+      newContent = message;
+    }
+
+    // 设置新的内容并触发input事件
+    $tavernTextarea
+      .val(newContent.trim())
+      .get(0)?.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // 将焦点设置到输入框
+    $tavernTextarea.focus();
+
+    // 将光标移动到末尾
+    const textarea = $tavernTextarea.get(0) as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+
+    console.log('[ChatPage] 消息已填入酒馆输入框:', message);
+    toastr.success('消息已填入输入框', '成功');
+
+  } catch (error) {
+    console.error('[ChatPage] 填入消息到输入框时出错:', error);
+    toastr.error('填入消息失败', '错误');
+  }
 }
 
 function handleAddContact() {
@@ -651,6 +702,13 @@ const loadTavernData = async () => {
 
     if (phoneData?.联系人) {
       loadContactsData(phoneData.联系人);
+
+      // 如果当前在对话页面，自动滚动到底部以显示新消息
+      if (currentView.value === 'conversation' && !isScrolling.value) {
+        nextTick(() => {
+          scrollToBottom();
+        });
+      }
     }
   } catch (error) {
     console.warn('[ChatPage] 加载酒馆数据时出错:', error);
