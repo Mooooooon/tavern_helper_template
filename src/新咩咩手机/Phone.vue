@@ -18,7 +18,12 @@
 
         <div class="mimi-phone-frame__inner">
           <div ref="dragHandleRef" class="mimi-phone-drag-handle">
-            <div class="mimi-phone-status-bar" :style="statusBarStyle" @click="handleStatusBarClick">
+            <div
+              class="mimi-phone-status-bar"
+              :style="statusBarStyle"
+              @click="handleStatusBarClick"
+              @touchend.prevent="handleStatusBarTouch"
+            >
               <div class="mimi-phone-status-left">
                 <span class="mimi-phone-time">{{ currentTimeText }}</span>
               </div>
@@ -138,7 +143,9 @@ function getInitialPosition() {
 function getEffectivePhoneWidth(): number {
   const viewportWidth = window.innerWidth;
   const minGap = DEFAULT_MARGIN * 2;
-  return Math.min(MAX_PHONE_WIDTH, Math.max(0, viewportWidth - minGap));
+  // 限制最大宽度为屏幕宽度的90%或390px，取较小值
+  const maxAllowedWidth = Math.min(MAX_PHONE_WIDTH, viewportWidth * 0.9);
+  return Math.min(maxAllowedWidth, Math.max(0, viewportWidth - minGap));
 }
 
 function applyPosition(next: { left?: number; top?: number }) {
@@ -277,7 +284,7 @@ function goHome() {
   currentView.value = 'home';
 }
 
-// 双击顶部状态栏返回主页
+// 双击顶部状态栏返回主页或隐藏
 function handleStatusBarClick(event: MouseEvent) {
   // 如果点击的是按钮或其子元素，不触发双击返回
   const target = event.target as HTMLElement;
@@ -288,9 +295,37 @@ function handleStatusBarClick(event: MouseEvent) {
   const currentTimeMs = Date.now();
 
   if (currentTimeMs - lastTapTime.value < TAP_TIMEOUT) {
-    // 双击检测到，返回主页
+    // 双击检测到
     if (currentView.value !== 'home') {
+      // 如果不在主页，返回主页
       currentView.value = 'home';
+    } else {
+      // 如果已经在主页，隐藏咩咩手机
+      hidePhone();
+    }
+  }
+
+  lastTapTime.value = currentTimeMs;
+}
+
+// 处理移动端触摸事件
+function handleStatusBarTouch(event: TouchEvent) {
+  // 如果触摸的是按钮或其子元素，不触发双击返回
+  const target = event.target as HTMLElement;
+  if (target.closest('button')) {
+    return;
+  }
+
+  const currentTimeMs = Date.now();
+
+  if (currentTimeMs - lastTapTime.value < TAP_TIMEOUT) {
+    // 双击检测到
+    if (currentView.value !== 'home') {
+      // 如果不在主页，返回主页
+      currentView.value = 'home';
+    } else {
+      // 如果已经在主页，隐藏咩咩手机
+      hidePhone();
     }
   }
 
@@ -380,8 +415,8 @@ const loadTimeFromTavern = async () => {
 <style lang="scss">
 .mimi-phone-wrapper {
   pointer-events: auto !important;
-  width: min(390px, calc(100vw - 32px));
-  max-width: 390px;
+  width: min(390px, 90vw, calc(100vw - 32px));
+  max-width: min(390px, 90vw);
 }
 
 .mimi-phone-container {
@@ -470,6 +505,8 @@ const loadTimeFromTavern = async () => {
   position: relative;
   flex: 1;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border-radius: 28px;
   background: linear-gradient(180deg, #f6f7ff 0%, #f1f3ff 50%, #e8ebff 100%);
   overflow: hidden;
@@ -538,7 +575,7 @@ const loadTimeFromTavern = async () => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 32px 22px 42px;
+  padding: clamp(16px, 5vw, 32px) clamp(12px, 4vw, 22px) clamp(24px, 6vw, 42px);
   box-sizing: border-box;
   color: #202432;
   background: linear-gradient(
@@ -547,6 +584,7 @@ const loadTimeFromTavern = async () => {
     rgba(240, 242, 255, 0.92) 60%,
     rgba(229, 233, 255, 0.96) 100%
   );
+  overflow: hidden;
 }
 
 .mimi-home-header {
@@ -573,10 +611,11 @@ const loadTimeFromTavern = async () => {
 .mimi-home-app-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px 22px;
-  padding-top: 16px;
+  gap: clamp(16px, 4vw, 28px) clamp(12px, 3vw, 22px);
+  padding-top: clamp(8px, 2vw, 16px);
   flex: 1;
   align-content: flex-start;
+  justify-content: flex-start;
 }
 
 .mimi-app-card {
@@ -591,9 +630,9 @@ const loadTimeFromTavern = async () => {
 }
 
 .mimi-app-card__icon {
-  width: 74px;
-  height: 74px;
-  border-radius: 22px;
+  width: clamp(56px, 12vw, 74px);
+  height: clamp(56px, 12vw, 74px);
+  border-radius: clamp(16px, 4vw, 22px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -630,11 +669,11 @@ const loadTimeFromTavern = async () => {
 
 .mimi-home-dock__glass {
   width: 100%;
-  border-radius: 26px;
-  padding: 12px 18px;
+  border-radius: clamp(18px, 4vw, 26px);
+  padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 18px);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
+  gap: clamp(12px, 3vw, 18px);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(238, 242, 255, 0.82) 100%);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
@@ -642,9 +681,11 @@ const loadTimeFromTavern = async () => {
 }
 
 .mimi-dock-app {
-  width: 54px;
-  height: 54px;
-  border-radius: 18px;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 54px;
+  max-height: 54px;
+  border-radius: clamp(14px, 3vw, 18px);
   border: none;
   display: flex;
   align-items: center;

@@ -11,7 +11,7 @@
           <img :src="userAvatar || ''" alt="Avatar" @error="handleAvatarError" />
         </div>
         <div class="mimi-profile-info">
-          <span class="mimi-profile-name">我的账号</span>
+          <span class="mimi-profile-name">{{ userData.昵称 || '我的账号' }}</span>
           <span class="mimi-profile-status">
             <span class="mimi-status-dot"></span>
             在线
@@ -171,7 +171,12 @@
 
       <!-- Moments View -->
       <div v-show="currentView === 'moments'" class="mimi-moments-view">
-        <MomentsPage :moments-data="momentsData" @go-back="goBackFromMoments" />
+        <MomentsPage
+          :moments-data="momentsData"
+          :user-moments-data="userMomentsData"
+          :user-info="userInfo"
+          @go-back="goBackFromMoments"
+        />
       </div>
     </main>
 
@@ -310,6 +315,13 @@ const conversationHeaderStyle = computed(() => ({
 
 // 联系人数据 - 从外部加载
 const contactsData = ref<Record<string, ContactData>>({});
+
+// 用户数据
+const userData = ref<{
+  昵称?: string;
+  头像描述?: string;
+  空间动态?: any[];
+}>({});
 
 // 计算属性
 const activeContact = computed(() => {
@@ -596,6 +608,50 @@ function loadContactsData(contactsDataParam: Record<string, any>) {
   contactsData.value = formattedContacts;
 }
 
+// 用户信息计算属性
+const userInfo = computed(() => ({
+  name: userData.value.昵称 || '',
+  avatar: userAvatar.value,
+}));
+
+// 用户动态数据计算属性
+const userMomentsData = computed(() => {
+  const userMoments = userData.value.空间动态;
+  if (!Array.isArray(userMoments) || userMoments.length === 0) return [];
+
+  const now = Date.now();
+  const moments: any[] = [];
+
+  userMoments.forEach((moment, i) => {
+    if (!moment?.时间 || !moment.内容) return;
+
+    const comments = (moment.评论列表 || [])
+      .filter((comment: any) => comment?.发言内容)
+      .map((comment: any, j: number) => ({
+        id: `user-${moment.时间}-${j}`,
+        author: comment.ID || `访客${j + 1}`,
+        content: comment.发言内容,
+      }));
+
+    const timestamp = new Date(moment.时间).getTime();
+    const validTimestamp = isNaN(timestamp) ? 0 : timestamp;
+
+    moments.push({
+      id: `user-${moment.时间}-${i}`,
+      contactName: 'user', // 用户自己
+      name: userData.value.昵称 || '',
+      content: moment.内容,
+      timestamp: formatMomentTimestamp(validTimestamp, now),
+      timeValue: validTimestamp,
+      comments,
+      avatar: userAvatar.value,
+    });
+  });
+
+  return moments;
+});
+
+// 联系人动态数据计算属性
 const momentsData = computed(() => {
   const contacts = contactsData.value;
   if (Object.keys(contacts).length === 0) return [];
@@ -634,7 +690,7 @@ const momentsData = computed(() => {
     });
   });
 
-  return moments.sort((a, b) => b.timeValue - a.timeValue);
+  return moments;
 });
 
 // 格式化动态时间戳
@@ -699,6 +755,15 @@ const loadTavernData = async () => {
 
     const mvuData = Mvu.getMvuData({ type: 'chat' });
     const phoneData = Mvu.getMvuVariable(mvuData, '手机数据', { default_value: {} });
+
+    // 加载用户数据
+    if (phoneData?.用户) {
+      userData.value = {
+        昵称: phoneData.用户.昵称,
+        头像描述: phoneData.用户.头像描述,
+        空间动态: phoneData.用户.空间动态 || [],
+      };
+    }
 
     if (phoneData?.联系人) {
       loadContactsData(phoneData.联系人);
@@ -877,12 +942,14 @@ onMounted(() => {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   background-color: #f6f6f7;
   scrollbar-width: none;
   -ms-overflow-style: none;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mimi-chat-app::-webkit-scrollbar {
@@ -895,9 +962,12 @@ onMounted(() => {
   align-items: center;
   padding: 0 16px 12px;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   cursor: default;
   user-select: none;
+  overflow: hidden;
 }
 
 .mimi-profile {
@@ -907,18 +977,21 @@ onMounted(() => {
 }
 
 .mimi-avatar {
-  width: 40px;
-  height: 40px;
+  width: clamp(36px, 10vw, 40px);
+  height: clamp(36px, 10vw, 40px);
   border-radius: 50%;
   border: 1px solid #ededed;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .mimi-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .mimi-profile-info {
@@ -977,6 +1050,8 @@ onMounted(() => {
   gap: 12px;
   width: 100%;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mimi-header-button {
@@ -1008,17 +1083,26 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .mimi-conversation-name {
   font-weight: 600;
   font-size: 16px;
   color: #1f1f1f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mimi-conversation-meta {
   font-size: 12px;
   color: #8c9099;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mimi-chat-content {
@@ -1101,11 +1185,13 @@ onMounted(() => {
 }
 
 .mimi-avatar-wrapper img {
-  width: 48px;
-  height: 48px;
+  width: clamp(44px, 12vw, 48px);
+  height: clamp(44px, 12vw, 48px);
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #e5e5e8;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .mimi-message-details {
@@ -1256,21 +1342,33 @@ onMounted(() => {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mimi-conversation-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mimi-conversation-message {
   display: flex;
   gap: 8px;
   max-width: 80%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mimi-message--user {
@@ -1279,8 +1377,8 @@ onMounted(() => {
 }
 
 .mimi-message-avatar {
-  width: 32px;
-  height: 32px;
+  width: clamp(30px, 8vw, 32px);
+  height: clamp(30px, 8vw, 32px);
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -1290,12 +1388,17 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .mimi-message-content {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .mimi-message-bubble {
@@ -1306,6 +1409,10 @@ onMounted(() => {
   font-size: 15px;
   line-height: 1.4;
   word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .mimi-message--user .mimi-message-bubble {
@@ -1323,22 +1430,32 @@ onMounted(() => {
   padding: 16px;
   background: #ffffff;
   border-top: 1px solid #e5e5e8;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mimi-input-wrapper {
   display: flex;
   gap: 8px;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mimi-message-input {
   flex: 1;
+  min-width: 0;
   padding: 12px 16px;
   border: 1px solid #e5e5e8;
   border-radius: 20px;
   background: #f6f6f7;
   font-size: 15px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .mimi-message-input:focus {

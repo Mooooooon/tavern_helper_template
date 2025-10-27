@@ -95,6 +95,11 @@ const emit = defineEmits<{
 
 const props = defineProps<{
   momentsData?: any[];
+  userMomentsData?: any[]; // 用户自己的动态数据
+  userInfo?: {
+    name: string;
+    avatar?: string;
+  };
 }>();
 
 // 页面状态
@@ -126,8 +131,16 @@ const momentsHeaderStyle = computed(() => ({
   color: '#222222',
 }));
 
+// 合并用户动态和联系人动态，并按时间排序
 const moments = computed<MomentItem[]>(() => {
-  return props.momentsData && Array.isArray(props.momentsData) ? props.momentsData : [];
+  const contactMoments = props.momentsData && Array.isArray(props.momentsData) ? props.momentsData : [];
+  const userMoments = props.userMomentsData && Array.isArray(props.userMomentsData) ? props.userMomentsData : [];
+
+  // 合并两个数组
+  const allMoments = [...contactMoments, ...userMoments];
+
+  // 按时间倒序排序（最新的在前）
+  return allMoments.sort((a, b) => b.timeValue - a.timeValue);
 });
 
 function goBack() {
@@ -352,11 +365,14 @@ function handleReplySubmit() {
 }
 
 .mimi-moment-avatar {
-  width: 42px;
-  height: 42px;
+  width: clamp(38px, 11vw, 42px);
+  height: clamp(38px, 11vw, 42px);
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #e5e5e8;
+  flex-shrink: 0;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .mimi-moment-user-info {
