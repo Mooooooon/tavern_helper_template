@@ -236,6 +236,11 @@ import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue';
 import MomentsPage from './MomentsPage.vue';
 import { resolveAvatar, convertAvatarToThumbnail } from './utils/avatar';
 
+// 定义 props
+const props = defineProps<{
+  currentTime: number;
+}>();
+
 // 定义发射事件
 const emit = defineEmits<{
   'go-home': [];
@@ -373,7 +378,7 @@ const filteredMessages = computed(() => {
   const contactsEntries = Object.entries(contacts);
   if (contactsEntries.length === 0) return [];
 
-  const now = Date.now();
+  const now = props.currentTime;
   return contactsEntries
     .map(([key, contact]) => {
       const chatRecords = Object.entries(contact.聊天记录);
@@ -407,23 +412,33 @@ function formatTimestamp(timestamp: number, nowMs: number): string {
   const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
 
-  if (dayDiff <= 0) {
-    if (diff < 60 * 1000) {
+  // 今天的消息
+  if (dayDiff === 0) {
+    // 5分钟内: 显示"刚刚"
+    if (diff < 5 * 60 * 1000) {
       return '刚刚';
     }
+    // 1小时内: 显示"X分钟前"
     if (diff < 60 * 60 * 1000) {
       const minutes = Math.floor(diff / (60 * 1000));
       return `${minutes}分钟前`;
     }
+    // 今天其他时间: 显示时间
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
   }
 
+  // 昨天
   if (dayDiff === 1) return '昨天';
+
+  // 前天
   if (dayDiff === 2) return '前天';
+
+  // 三天前
   if (dayDiff === 3) return '三天前';
 
+  // 更早的日期: 显示具体日期
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
   const isSameYear = date.getFullYear() === now.getFullYear();
@@ -432,9 +447,42 @@ function formatTimestamp(timestamp: number, nowMs: number): string {
 
 function formatMessageTime(timestamp: number): string {
   const date = new Date(timestamp);
+  const now = new Date(props.currentTime);
+
+  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
+
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+  const timeText = `${hours}:${minutes}`;
+
+  // 今天: 显示时间
+  if (dayDiff === 0) {
+    return timeText;
+  }
+
+  // 昨天+时间
+  if (dayDiff === 1) {
+    return `昨天 ${timeText}`;
+  }
+
+  // 前天+时间
+  if (dayDiff === 2) {
+    return `前天 ${timeText}`;
+  }
+
+  // 三天前+时间
+  if (dayDiff === 3) {
+    return `三天前 ${timeText}`;
+  }
+
+  // 更早的日期: 显示具体日期+时间
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const isSameYear = date.getFullYear() === now.getFullYear();
+  const dateText = isSameYear ? `${month}/${day}` : `${date.getFullYear()}/${month}/${day}`;
+  return `${dateText} ${timeText}`;
 }
 
 // 重置滚动位置到顶部
@@ -619,7 +667,7 @@ const userMomentsData = computed(() => {
   const userMoments = userData.value.空间动态;
   if (!Array.isArray(userMoments) || userMoments.length === 0) return [];
 
-  const now = Date.now();
+  const now = props.currentTime;
   const moments: any[] = [];
 
   userMoments.forEach((moment, i) => {
@@ -656,7 +704,7 @@ const momentsData = computed(() => {
   const contacts = contactsData.value;
   if (Object.keys(contacts).length === 0) return [];
 
-  const now = Date.now();
+  const now = props.currentTime;
   const moments: any[] = [];
 
   Object.entries(contacts).forEach(([contactName, contact]) => {

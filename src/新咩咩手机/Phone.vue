@@ -100,7 +100,7 @@
             </div>
 
             <!-- Chat Page -->
-            <ChatPage v-show="currentView === 'chat'" ref="chatPageRef" @go-home="goHome" />
+            <ChatPage v-show="currentView === 'chat'" ref="chatPageRef" :current-time="currentTime" @go-home="goHome" />
           </div>
         </div>
       </div>
