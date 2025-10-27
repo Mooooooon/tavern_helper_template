@@ -1,27 +1,29 @@
 <template>
   <div class="mimi-moments-page">
-    <header class="mimi-moments-header" :style="momentsHeaderStyle">
-      <button
-        class="mimi-header-button mimi-header-button--back"
-        type="button"
-        aria-label="返回聊天列表"
-        @click="goBack"
-      >
-        <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-        </svg>
-      </button>
-      <span class="mimi-moments-title">动态</span>
-      <div class="mimi-actions">
-        <button class="mimi-icon-button" type="button" aria-label="发布动态" @click="handlePublishMoment">
+    <!-- 动态列表页面 -->
+    <div v-show="currentView === 'list'" class="mimi-moments-view">
+      <header class="mimi-moments-header" :style="momentsHeaderStyle">
+        <button
+          class="mimi-header-button mimi-header-button--back"
+          type="button"
+          aria-label="返回聊天列表"
+          @click="goBack"
+        >
           <svg viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
           </svg>
         </button>
-      </div>
-    </header>
+        <span class="mimi-moments-title">动态</span>
+        <div class="mimi-actions">
+          <button class="mimi-icon-button" type="button" aria-label="发布动态" @click="handlePublishMoment">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
-    <main class="mimi-moments-list">
+      <main class="mimi-moments-list">
       <article v-for="moment in moments" :key="moment.id" class="mimi-moment-card">
         <header class="mimi-moment-card-header">
           <div class="mimi-moment-user">
@@ -70,11 +72,21 @@
         <p>暂无动态</p>
       </div>
     </main>
+    </div>
+
+    <!-- 发布动态页面 -->
+    <div v-show="currentView === 'publish'" class="mimi-publish-view">
+      <PublishMomentPage
+        @go-back="handlePublishBack"
+        @publish="handleMomentPublish"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import PublishMomentPage from './PublishMomentPage.vue';
 
 // 定义发射事件和props
 const emit = defineEmits<{
@@ -84,6 +96,9 @@ const emit = defineEmits<{
 const props = defineProps<{
   momentsData?: any[];
 }>();
+
+// 页面状态
+const currentView = ref<'list' | 'publish'>('list');
 
 // 回复输入框的状态
 const replyInputs = ref<Record<string, string>>({});
@@ -120,7 +135,82 @@ function goBack() {
 }
 
 function handlePublishMoment() {
-  toastr.info('发布动态功能暂未完成，敬请期待！', '提示');
+  currentView.value = 'publish';
+}
+
+function handlePublishBack() {
+  currentView.value = 'list';
+}
+
+function handleMomentPublish(content: string) {
+  // 发布成功后返回列表页面
+  currentView.value = 'list';
+
+  // 将发布的内容发送到酒馆
+  publishMomentToTavern(content);
+}
+
+// 将动态发布到酒馆的函数
+function publishMomentToTavern(content: string) {
+  try {
+    // 加工动态格式，添加标识符
+    const processedMoment = `[手机系统：发布动态-"${content}"]`;
+
+    // 将动态填入酒馆输入框
+    fillMomentToTavernInput(processedMoment);
+
+    console.log('发布动态:', processedMoment);
+    toastr.success('动态已发送到酒馆', '成功');
+
+  } catch (error) {
+    console.error('[MomentsPage] 发布动态时出错:', error);
+    toastr.error('发布动态失败', '错误');
+  }
+}
+
+// 将动态填入酒馆输入框的函数
+function fillMomentToTavernInput(moment: string) {
+  try {
+    // 使用jQuery来操作酒馆的输入框
+    const $tavernTextarea = $('#send_textarea');
+
+    if ($tavernTextarea.length === 0) {
+      console.warn('[MomentsPage] 未找到酒馆输入框 #send_textarea');
+      toastr.warning('未找到酒馆输入框', '提示');
+      return;
+    }
+
+    // 获取当前输入框的内容
+    const currentContent = $tavernTextarea.val()?.toString().trim() || '';
+
+    // 如果输入框已有内容，需要在前面添加换行
+    let newContent: string;
+    if (currentContent) {
+      newContent = currentContent + '\n' + moment;
+    } else {
+      newContent = moment;
+    }
+
+    // 设置新的内容并触发input事件
+    $tavernTextarea
+      .val(newContent.trim())
+      .get(0)?.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // 将焦点设置到输入框
+    $tavernTextarea.focus();
+
+    // 将光标移动到末尾
+    const textarea = $tavernTextarea.get(0) as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+
+    console.log('[MomentsPage] 动态已填入酒馆输入框:', moment);
+
+  } catch (error) {
+    console.error('[MomentsPage] 填入动态到输入框时出错:', error);
+    throw error;
+  }
 }
 
 function handleMomentMore() {
@@ -142,11 +232,25 @@ function handleReplySubmit() {
   /* 隐藏滚动条 */
   scrollbar-width: none;
   -ms-overflow-style: none;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .mimi-moments-page::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.mimi-moments-view,
+.mimi-publish-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .mimi-moments-header {
